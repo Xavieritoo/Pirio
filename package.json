@@ -1,0 +1,19 @@
+{
+  "name": "piriobot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "init-db": "node ./database/init-db.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "better-sqlite3": "^13.0.2",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "sqlite3": "^6.0.1"
+  }
+}
