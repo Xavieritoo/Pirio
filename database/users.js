@@ -57,5 +57,5 @@ module.exports = {
   getUserByDiscordId,
   ensureUser,
   updateUserFields,
-  getTopUsers
+  getTopUsers,
 };
