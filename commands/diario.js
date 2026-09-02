@@ -1,5 +1,10 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { getDailyCommandName, getDailyCommandLabel } = require("../database/daily-game");
+const {
+  getDailyCommandName,
+  getDailyCommandLabel,
+  getDailyCommandDescription,
+  getDailyHowToPlay
+} = require("../database/daily-game");
 
 const WORDS = [
   "amigo", "tiempo", "salud", "mundo", "feliz", "grato", "novio", "plomo",
@@ -62,10 +67,14 @@ module.exports = {
   async execute(interaction) {
     const dailyCommand = getDailyCommandName();
     const dailyLabel = getDailyCommandLabel();
+    const dailyDescription = getDailyCommandDescription();
+    const dailyHowToPlay = getDailyHowToPlay();
 
     return interaction.reply({
       content: `🎯 El minijuego de hoy es **${dailyLabel}**.
-Usa el comando "/${dailyCommand}" para jugarlo.`,
+${dailyDescription}
+
+${dailyHowToPlay}`,
       ephemeral: true
     });
   }

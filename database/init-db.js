@@ -29,6 +29,10 @@ async function initDatabase() {
         name: "daily_solved",
         definition: "INTEGER NOT NULL DEFAULT 0",
       },
+      {
+        name: "daily_streak",
+        definition: "INTEGER NOT NULL DEFAULT 0",
+      },
     ];
 
     const added = [];
