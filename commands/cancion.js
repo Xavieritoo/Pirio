@@ -365,9 +365,9 @@ function normalize(text) {
  * XP SEGÚN INTENTO
  * ============================================================
  *
- * Intento 1 -> 700 XP
- * Intento 2 -> 650 XP
- * Intento 3 -> 600 XP
+ * Intento 1 -> 650 XP
+ * Intento 2 -> 600 XP
+ * Intento 3 -> 550 XP
  *
  * ============================================================
  */
@@ -376,7 +376,7 @@ function getXpForAttempt(attempt) {
 
     return Math.max(
         150,
-        700 - (attempt - 1) * 50
+        650 - (attempt - 1) * 50
     );
 
 }

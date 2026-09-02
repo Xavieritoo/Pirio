@@ -453,7 +453,7 @@ function getXpForAttempt(attempt) {
 
     return Math.max(
         100,
-        700 - attempt * 50
+        650 - attempt * 50
     );
 
 }

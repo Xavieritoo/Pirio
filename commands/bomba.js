@@ -1,11 +1,8 @@
-const {
+﻿const {
     SlashCommandBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle
+    ButtonStyle
 } = require("discord.js");
 
 const spanishWords = require("an-array-of-spanish-words");
@@ -34,10 +31,10 @@ CONFIGURACIÓN
 ============================================================
 */
 
-const INITIAL_TIME = 20000; // 20 segundos
-const TIME_DECREASE = 500;  // -0.5 segundos
-const MIN_TIME = 1500;      // mínimo 1.5 segundos
-const POINTS_PER_WORD = 50; // 50 XP base por palabra
+const INITIAL_TIME = 35000; // 35 segundos
+const POINTS_PER_WORD = 50; // 50 XP por palabra correcta
+
+const RE_SEND_EVERY = 8;     // reenviar el estado cada X mensajes
 
 
 /*
@@ -83,7 +80,6 @@ const SYLLABLES = [
     "pua", "pue",
     "tua", "tue"
 ];
-
 
 /*
 ============================================================
@@ -175,11 +171,11 @@ function getRandomSyllable(previousSyllable = null) {
 
 /*
 ============================================================
-CREAR BOTÓN
+CREAR BOTÓN DE INICIO
 ============================================================
 */
 
-function createWordButton(
+function createStartButton(
     customId,
     disabled = false
 ) {
@@ -189,55 +185,11 @@ function createWordButton(
 
             new ButtonBuilder()
                 .setCustomId(customId)
-                .setLabel("💣 Escribir palabra")
+                .setLabel("▶️ Empezar partida")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(disabled)
 
         );
-
-}
-
-
-/*
-============================================================
-CREAR MODAL
-============================================================
-*/
-
-function createWordModal(
-    customId,
-    syllable
-) {
-
-    const modal =
-        new ModalBuilder()
-            .setCustomId(customId)
-            .setTitle(
-                `💣 Bomba — ${syllable.toUpperCase()}`
-            );
-
-
-    const input =
-        new TextInputBuilder()
-            .setCustomId("word")
-            .setLabel(
-                `Palabra con ${syllable.toUpperCase()}`
-            )
-            .setPlaceholder("Ejemplo: napolitana")
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true)
-            .setMaxLength(50);
-
-
-    const row =
-        new ActionRowBuilder()
-            .addComponents(input);
-
-
-    modal.addComponents(row);
-
-
-    return modal;
 
 }
 
@@ -423,7 +375,9 @@ module.exports = {
                         (
                             user.daily_attempts ||
                             0
-                        ) + 1
+                        ) + 1,
+                    last_daily_date:
+                        today
 
                 }
 
@@ -450,6 +404,67 @@ module.exports = {
 
         /*
         ====================================================
+        ABRIR CHAT PRIVADO (DM)
+        ====================================================
+        */
+
+        let dmChannel;
+
+        try {
+
+            dmChannel =
+                await interaction.user.createDM();
+
+        } catch (error) {
+
+            console.error(
+                "Error abriendo tu chat privado de Bomba:",
+                error
+            );
+
+            return interaction.reply({
+
+                content:
+                    "❌ No he podido abrirte un mensaje directo.\n\n" +
+                    "Activa **Mensajes directos** para poder jugar a la **Bomba**.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+
+        /*
+        ====================================================
+        CONFIRMAR INICIO EN EL CANAL
+        ====================================================
+        */
+
+        try {
+
+            await interaction.reply({
+
+                content:
+                    "💬 Te he enviado el minijuego **Bomba** a tu chat privado.\n\n" +
+                    "Abre tu MP y pulsa **▶️ Empezar partida**.",
+
+                ephemeral: true
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Error confirmando inicio de Bomba:",
+                error
+            );
+
+        }
+
+
+        /*
+        ====================================================
         VARIABLES DE PARTIDA
         ====================================================
         */
@@ -464,7 +479,7 @@ module.exports = {
 
         let timer = null;
 
-        let modalOpen = false;
+        let messageCount = 0;
 
 
         /*
@@ -501,19 +516,51 @@ module.exports = {
             `bomba_button_${gameId}`;
 
 
-        let modalNumber = 0;
+        /*
+        ====================================================
+        CONSTRUIR ESTADO DEL JUEGO
+        ====================================================
+        */
+
+        function buildGameStatus(extraLine = "") {
+
+            const timeText =
+                gameStarted
+                    ? (currentTime / 1000).toFixed(1) + " segundos"
+                    : "Sin límite";
+
+            return (
+
+                `💣 **¡BOMBA!**\n\n` +
+
+                `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+
+                `⏱️ Tiempo restante: **${timeText}**\n\n` +
+
+                `🎯 Puntos: **${score * POINTS_PER_WORD}**\n\n` +
+
+                extraLine
+
+            );
+
+        }
 
 
         /*
         ====================================================
-        ACTUALIZAR MENSAJE PRINCIPAL
+        ACTUALIZAR MENSAJE PRINCIPAL (DM)
         ====================================================
         */
 
-        const updateGameMessage =
-            async (content) => {
+        let gameMessage = null;
 
-                if (gameFinished) {
+        const updateGameMessage =
+            async (content, components = []) => {
+
+                if (
+                    gameFinished ||
+                    !gameMessage
+                ) {
 
                     return;
 
@@ -522,17 +569,11 @@ module.exports = {
 
                 try {
 
-                    await interaction.editReply({
+                    await gameMessage.edit({
 
                         content,
 
-                        components: [
-
-                            createWordButton(
-                                buttonId
-                            )
-
-                        ]
+                        components
 
                     });
 
@@ -550,9 +591,91 @@ module.exports = {
 
         /*
         ====================================================
+        REENVIAR MENSAJE PRINCIPAL (DM)
+        ====================================================
+
+        Cada RE_SEND_EVERY mensajes del jugador, el estado
+        con la sílaba y el tiempo se reenvía en un mensaje
+        nuevo para que no se pierda hacia arriba mientras
+        se acumulan los mensajes del chat.
+
+        ====================================================
+        */
+
+        const refreshGameMessage =
+            async (content, components = []) => {
+
+                if (gameFinished) {
+
+                    return;
+
+                }
+
+
+                messageCount++;
+
+
+                if (
+                    gameMessage &&
+                    messageCount % RE_SEND_EVERY !== 0
+                ) {
+
+                    try {
+
+                        await gameMessage.edit({
+
+                            content,
+
+                            components
+
+                        });
+
+                    } catch (error) {
+
+                        console.error(
+                            "Error actualizando mensaje de Bomba:",
+                            error
+                        );
+
+                    }
+
+                    return;
+
+                }
+
+
+                try {
+
+                    gameMessage =
+                        await dmChannel.send({
+
+                            content,
+
+                            components
+
+                        });
+
+                } catch (error) {
+
+                    console.error(
+                        "Error reenviando mensaje de Bomba:",
+                        error
+                    );
+
+                }
+
+            };
+
+
+        /*
+        ====================================================
         FINALIZAR PARTIDA
         ====================================================
         */
+
+        let buttonCollector = null;
+
+        let messageCollector = null;
 
         const finishGame =
             async () => {
@@ -569,13 +692,46 @@ module.exports = {
 
                 /*
                 =================================================
+                PARAR COLECTORES
+                =================================================
+                */
+
+                if (
+                    messageCollector &&
+                    !messageCollector.ended
+                ) {
+
+                    try {
+
+                        messageCollector.stop();
+
+                    } catch (error) {}
+
+                }
+
+                if (
+                    buttonCollector &&
+                    !buttonCollector.ended
+                ) {
+
+                    try {
+
+                        buttonCollector.stop();
+
+                    } catch (error) {}
+
+                }
+
+
+                /*
+                =================================================
                 PARAR TEMPORIZADOR
                 =================================================
                 */
 
                 if (timer) {
 
-                    clearTimeout(timer);
+                    clearInterval(timer);
 
                     timer = null;
 
@@ -615,7 +771,6 @@ module.exports = {
 
                         );
 
-
                     xpGain =
                         Math.ceil(
                             Number(
@@ -629,20 +784,6 @@ module.exports = {
                 /*
                 =================================================
                 SUMAR XP
-                =================================================
-                *
-                * IMPORTANTE:
-                *
-                * Aquí NO usamos updateUserFields().
-                *
-                * Usamos addXp() porque addXp():
-                *
-                * 1. Calcula el nuevo nivel.
-                * 2. Guarda XP y nivel.
-                * 3. Sincroniza el rango.
-                * 4. Detecta subida de nivel.
-                * 5. Envía notifyLevelUp().
-                *
                 =================================================
                 */
 
@@ -733,34 +874,38 @@ module.exports = {
 
                 /*
                 =================================================
-                MENSAJE PRIVADO FINAL
+                MENSAJE PRIVADO FINAL (DM)
                 =================================================
                 */
 
                 try {
 
-                    await interaction.editReply({
+                    if (gameMessage) {
 
-                        content:
+                        await gameMessage.edit({
 
-                            `💥 **¡BOOM!**\n\n` +
+                            content:
 
-                            `💣 La bomba ha explotado.\n\n` +
+                                `💥 **¡BOOM!**\n\n` +
 
-                            `🏆 Palabras acertadas: **${score}**\n` +
+                                `💣 La bomba ha explotado.\n\n` +
 
-                            `⭐ Puntos conseguidos: **${xpGain} XP**` +
+                                `🏆 Palabras acertadas: **${score}**\n` +
 
-                            (
-                                newLevel &&
-                                    xpResult?.leveledUp
-                                    ? `\n\n🎉 Has subido al **nivel ${newLevel}**.`
-                                    : ""
-                            ),
+                                `⭐ Puntos conseguidos: **${xpGain} XP**` +
 
-                        components: []
+                                (
+                                    newLevel &&
+                                        xpResult?.leveledUp
+                                        ? `\n\n🎉 Has subido al **nivel ${newLevel}**.`
+                                        : ""
+                                ),
 
-                    });
+                            components: []
+
+                        });
+
+                    }
 
                 } catch (error) {
 
@@ -832,12 +977,88 @@ module.exports = {
                     INITIAL_TIME;
 
 
+                /*
+                =====================================================
+                CONTEO REGRESIVO VISIBLE
+                =====================================================
+
+                Cada segundo se reduce currentTime y se actualiza el
+                mensaje del DM mostrando el tiempo restante. Cuando
+                llega a 0, la bomba explota (finishGame).
+
+                =====================================================
+                */
+
                 timer =
-                    setTimeout(
+                    setInterval(
 
-                        finishGame,
+                        async () => {
 
-                        currentTime
+                            if (gameFinished) {
+
+                                clearInterval(timer);
+
+                                timer = null;
+
+                                return;
+
+                            }
+
+
+                            const remaining =
+                                currentTime - 1000;
+
+
+                            if (remaining <= 0) {
+
+                                currentTime = 0;
+
+                                clearInterval(timer);
+
+                                timer = null;
+
+                                await finishGame();
+
+                                return;
+
+                            }
+
+
+                            currentTime = remaining;
+
+
+                            if (gameMessage) {
+
+                                try {
+
+                                    await updateGameMessage(
+
+                                        buildGameStatus(
+
+                                            "💣 **¡La bomba está a punto de explotar!**\n\n" +
+
+                                            "**Sigue escribiendo palabras con la sílaba.**"
+
+                                        ),
+
+                                        []
+
+                                    );
+
+                                } catch (error) {
+
+                                    console.error(
+                                        "Error actualizando cuenta atrás de Bomba:",
+                                        error
+                                    );
+
+                                }
+
+                            }
+
+                        },
+
+                        1000
 
                     );
 
@@ -846,47 +1067,69 @@ module.exports = {
 
         /*
         ====================================================
-        MENSAJE INICIAL
+        ENVIAR MENSAJE EN EL CHAT PRIVADO (BOTÓN DE INICIO)
         ====================================================
         */
 
-        const gameMessage =
-            await interaction.reply({
+        try {
 
-                content:
+            gameMessage =
+                await dmChannel.send({
 
-                    `💣 **¡BOMBA!**\n\n` +
+                    content:
 
-                    `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+                        `💣 **¡BOMBA!**\n\n` +
 
-                    `⏳ **La primera palabra no tiene límite de tiempo.**\n\n` +
+                        `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
 
-                    `Pulsa el botón y escribe una palabra que contenga **${syllable.toUpperCase()}**.\n\n` +
+                        `⏳ **La primera palabra no tiene límite de tiempo.**\n\n` +
 
-                    `🎯 Puntos: **0**`,
+                        `Escribe en este chat una palabra que contenga **${syllable.toUpperCase()}**.\n\n` +
 
-                components: [
+                        `🎯 Puntos: **0**`,
 
-                    createWordButton(
-                        buttonId
-                    )
+                    components: [
 
-                ],
+                        createStartButton(
+                            buttonId
+                        )
 
-                ephemeral: true,
+                    ]
 
-                fetchReply: true
+                });
 
-            });
+        } catch (error) {
+
+            console.error(
+                "Error enviando mensaje de Bomba por DM:",
+                error
+            );
+
+            try {
+
+                await interaction.followUp({
+
+                    content:
+                        "❌ No se pudo enviar el minijuego a tu chat privado.",
+
+                    ephemeral: true
+
+                });
+
+            } catch (ignoreError) {}
+
+            return;
+
+        }
 
 
         /*
         ====================================================
-        COLLECTOR DEL BOTÓN
+        COLLECTOR DEL BOTÓN (EMPEZAR PARTIDA)
         ====================================================
         */
 
-        const buttonCollector =
+        buttonCollector =
             gameMessage.createMessageComponentCollector({
 
                 filter:
@@ -912,7 +1155,7 @@ module.exports = {
 
         /*
         ====================================================
-        BOTÓN PULSADO
+        BOTÓN PULSADO (EMPEZAR)
         ====================================================
         */
 
@@ -929,74 +1172,14 @@ module.exports = {
                 }
 
 
-                /*
-                =================================================
-                EVITAR VARIOS MODALES SIMULTÁNEOS
-                =================================================
-                */
-
-                if (modalOpen) {
-
-                    try {
-
-                        await buttonInteraction.reply({
-
-                            content:
-                                "⏳ Ya tienes una palabra abierta para responder.",
-
-                            ephemeral: true
-
-                        });
-
-                    } catch (error) {
-
-                        console.error(
-                            "Error avisando de modal abierto:",
-                            error
-                        );
-
-                    }
-
-                    return;
-
-                }
-
-
-                modalOpen = true;
-
-                modalNumber++;
-
-
-                const modalId =
-                    `bomba_modal_${gameId}_${modalNumber}`;
-
-
-                /*
-                =================================================
-                MOSTRAR MODAL
-                =================================================
-                */
-
                 try {
 
-                    await buttonInteraction.showModal(
-
-                        createWordModal(
-
-                            modalId,
-
-                            syllable
-
-                        )
-
-                    );
+                    await buttonInteraction.deferUpdate();
 
                 } catch (error) {
 
-                    modalOpen = false;
-
                     console.error(
-                        "Error mostrando modal de Bomba:",
+                        "Error confirmando inicio de Bomba:",
                         error
                     );
 
@@ -1005,79 +1188,57 @@ module.exports = {
                 }
 
 
-                /*
-                =================================================
-                ESPERAR RESPUESTA DEL MODAL
-                =================================================
-                */
+                await updateGameMessage(
 
-                let modalInteraction;
+                    buildGameStatus(
 
+                        "✅ **¡Partida iniciada!**\n\n" +
 
-                try {
+                        "⏱️ La bomba cuenta **20 segundos**.\n\n" +
 
-                    modalInteraction =
-                        await buttonInteraction.awaitModalSubmit({
+                        "**Escribe una palabra con la sílaba en el chat." +
 
-                            filter:
-                                submittedInteraction => {
+                        "** Cuantas más aciertes, más XP."
 
-                                    return (
+                    ),
 
-                                        submittedInteraction.customId ===
-                                        modalId &&
+                    []
 
-                                        submittedInteraction.user.id ===
-                                        interaction.user.id
-
-                                    );
-
-                                },
-
-                            time:
-                                60 * 1000
-
-                        });
-
-                } catch (error) {
-
-                    modalOpen = false;
-
-                    return;
-
-                }
+                );
 
 
-                modalOpen = false;
+                startTimer();
+
+            }
+
+        );
 
 
-                /*
-                =================================================
-                CONFIRMAR MODAL
-                =================================================
-                */
+        /*
+        ====================================================
+        COLLECTOR DE MENSAJES (PALABRAS EN EL CHAT)
+        ====================================================
+        */
 
-                try {
+        messageCollector =
+            dmChannel.createMessageCollector({
 
-                    await modalInteraction.deferUpdate();
+                filter:
+                    message =>
+                        message.author.id ===
+                        interaction.user.id,
 
-                } catch (error) {
+                time:
+                    15 * 60 * 1000
 
-                    console.error(
-                        "Error confirmando modal:",
-                        error
-                    );
-
-                    return;
-
-                }
+            });
 
 
-                /*
-                =================================================
-                COMPROBAR PARTIDA
-                =================================================
-                */
+        messageCollector.on(
+
+            "collect",
+
+            async message => {
 
                 if (gameFinished) {
 
@@ -1086,16 +1247,8 @@ module.exports = {
                 }
 
 
-                /*
-                =================================================
-                OBTENER PALABRA
-                =================================================
-                */
-
                 const rawWord =
-                    modalInteraction.fields.getTextInputValue(
-                        "word"
-                    );
+                    message.content;
 
 
                 const word =
@@ -1114,19 +1267,13 @@ module.exports = {
 
                     await updateGameMessage(
 
-                        `💣 **¡BOMBA!**\n\n` +
+                        buildGameStatus(
 
-                        `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+                            "❌ **Escribe una palabra en el chat.**"
 
-                        `⏱️ Tiempo: **${gameStarted
-                            ? (currentTime / 1000).toFixed(1) + " segundos"
-                            : "Sin límite"
-                        }**\n\n` +
+                        ),
 
-                        `🎯 Puntos: **${score * POINTS_PER_WORD
-                        }**\n\n` +
-
-                        `❌ **Escribe una palabra.**`
+                        []
 
                     );
 
@@ -1147,21 +1294,15 @@ module.exports = {
 
                     await updateGameMessage(
 
-                        `💣 **¡BOMBA!**\n\n` +
+                        buildGameStatus(
 
-                        `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+                            `❌ **${rawWord}** ya ha sido utilizada.\n\n` +
 
-                        `⏱️ Tiempo: **${gameStarted
-                            ? (currentTime / 1000).toFixed(1) + " segundos"
-                            : "Sin límite"
-                        }**\n\n` +
+                            `Escribe otra palabra en el chat.`
 
-                        `🎯 Puntos: **${score * POINTS_PER_WORD
-                        }**\n\n` +
+                        ),
 
-                        `❌ **${rawWord}** ya ha sido utilizada.\n\n` +
-
-                        `Pulsa el botón para intentarlo de nuevo.`
+                        []
 
                     );
 
@@ -1188,21 +1329,15 @@ module.exports = {
 
                     await updateGameMessage(
 
-                        `💣 **¡BOMBA!**\n\n` +
+                        buildGameStatus(
 
-                        `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+                            `❌ **${rawWord}** no contiene la sílaba **${syllable.toUpperCase()}**.\n\n` +
 
-                        `⏱️ Tiempo: **${gameStarted
-                            ? (currentTime / 1000).toFixed(1) + " segundos"
-                            : "Sin límite"
-                        }**\n\n` +
+                            `Escribe otra palabra en el chat.`
 
-                        `🎯 Puntos: **${score * POINTS_PER_WORD
-                        }**\n\n` +
+                        ),
 
-                        `❌ **${rawWord}** no contiene la sílaba **${syllable.toUpperCase()}**.\n\n` +
-
-                        `Pulsa el botón para intentarlo de nuevo.`
+                        []
 
                     );
 
@@ -1223,27 +1358,22 @@ module.exports = {
 
                     await updateGameMessage(
 
-                        `💣 **¡BOMBA!**\n\n` +
+                        buildGameStatus(
 
-                        `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
+                            `❌ **${rawWord}** no es una palabra válida.\n\n` +
 
-                        `⏱️ Tiempo: **${gameStarted
-                            ? (currentTime / 1000).toFixed(1) + " segundos"
-                            : "Sin límite"
-                        }**\n\n` +
+                            `Escribe otra palabra en el chat.`
 
-                        `🎯 Puntos: **${score * POINTS_PER_WORD
-                        }**\n\n` +
+                        ),
 
-                        `❌ **${rawWord}** no es una palabra válida.\n\n` +
-
-                        `Pulsa el botón para intentarlo de nuevo.`
+                        []
 
                     );
 
                     return;
 
                 }
+
 
 
                 /*
@@ -1255,31 +1385,6 @@ module.exports = {
                 usedWords.add(word);
 
                 score++;
-
-
-                /*
-                =================================================
-                CONTROL DEL TIEMPO
-                =================================================
-                */
-
-                if (!gameStarted) {
-
-                    startTimer();
-
-                } else {
-
-                    currentTime =
-                        Math.max(
-
-                            MIN_TIME,
-
-                            currentTime -
-                            TIME_DECREASE
-
-                        );
-
-                }
 
 
                 /*
@@ -1298,40 +1403,17 @@ module.exports = {
 
                 /*
                 =================================================
-                REINICIAR TEMPORIZADOR
-                =================================================
-                */
-
-                if (timer) {
-
-                    clearTimeout(timer);
-
-                }
-
-
-                timer =
-                    setTimeout(
-
-                        finishGame,
-
-                        currentTime
-
-                    );
-
-
-                /*
-                =================================================
                 ACTUALIZAR MENSAJE PRINCIPAL
                 =================================================
                 */
 
-                await updateGameMessage(
+                await refreshGameMessage(
 
                     `💣 **¡BOMBA!**\n\n` +
 
                     `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
 
-                    `⏱️ Tiempo para esta palabra: **${(
+                    `⏱️ Tiempo restante: **${(
                         currentTime / 1000
                     ).toFixed(1)} segundos**\n\n` +
 
@@ -1340,9 +1422,11 @@ module.exports = {
 
                     `✅ **¡Correcto!**\n\n` +
 
-                    `💥 **¡RÁPIDO!**\n\n` +
+                    `💥 **¡SIGUE!**\n\n` +
 
-                    `Pulsa el botón para escribir la siguiente palabra.`
+                    `Escribe otra palabra con la sílaba en el chat.`,
+
+                    []
 
                 );
 
@@ -1353,14 +1437,11 @@ module.exports = {
 
         /*
         ====================================================
-        FINALIZACIÓN DEL COLLECTOR
+        FINALIZACIÓN DE COLECTORES
         ====================================================
         */
 
-        buttonCollector.on(
-
-            "end",
-
+        const endCollectors =
             () => {
 
                 if (!gameFinished) {
@@ -1369,8 +1450,18 @@ module.exports = {
 
                 }
 
-            }
+            };
 
+
+        buttonCollector.on(
+            "end",
+            endCollectors
+        );
+
+
+        messageCollector.on(
+            "end",
+            endCollectors
         );
 
     }

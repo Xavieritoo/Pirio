@@ -636,18 +636,18 @@ module.exports = {
        * XP BASE
        * =================================================
        *
-       * 1º intento -> 900 XP
-       * 2º intento -> 850 XP
-       * 3º intento -> 800 XP
-       * 4º intento -> 750 XP
-       * 5º intento -> 700 XP
-       * 6º intento -> 650 XP
+       * 1º intento -> 800 XP
+       * 2º intento -> 750 XP
+       * 3º intento -> 700 XP
+       * 4º intento -> 650 XP
+       * 5º intento -> 600 XP
+       * 6º intento -> 550 XP
        *
        * =================================================
        */
 
       const baseXpGain =
-        900 -
+        800 -
         (
           nextAttempt - 1
         ) * 50;

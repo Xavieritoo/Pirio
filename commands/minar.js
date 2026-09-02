@@ -48,8 +48,8 @@ const MINERALS = [
     { id: "sarten", name: "Sartén", plural: "Sartenes", xp: 9000, probability: 0.06, rarity: "mythic", uniqueAmount: true, message: "🍳 Una simple sartén... o eso parece. Está sorprendentemente bien conservada para haber sobrevivido a un campo de batalla." },
     { id: "painita", name: "Painita", plural: "Painitas", xp: 11000, probability: 0.08, rarity: "mythic", uniqueAmount: true, message: "🔥 ¡¡¡HAS ENCONTRADO PAINITA!!! Una de las gemas más raras que podrías encontrar." },
     { id: "puppet", name: "Marioneta", plural: "Marionetas", xp: 11000, probability: 0.06, rarity: "mythic", uniqueAmount: true, message: "🎭 Una vieja marioneta te observa desde las sombras. No recuerdas haberla visto moverse... pero tampoco recuerdas haberla dejado ahí." },
-    { id: "holygrenade", name: "Granada Sagrada", plural: "Granadas Sagradas", xp: 14000, probability: 0.06, rarity: "mythic", uniqueAmount: true, message: "✨ Una granada envuelta en un resplandor celestial. Resulta difícil decidir si deberías lanzarla... o empezar a rezar." },
-    { id: "jeremejevita", name: "Jeremejevita", plural: "Jeremejevitas", xp: 18000, probability: 0.08, rarity: "mythic", uniqueAmount: true, message: "🤍 ¡¡¡JEREMEJEVITA!!! Has encontrado una gema con forma de mitad de corazón. ¿Dónde estará su otra mitad?" },
+    { id: "holygrenade", name: "Granada Sagrada", plural: "Granadas Sagradas", xp: 14000, probability: 0.08, rarity: "mythic", uniqueAmount: true, message: "✨ Una granada envuelta en un resplandor celestial. Resulta difícil decidir si deberías lanzarla... o empezar a rezar." },
+    { id: "jeremejevita", name: "Jeremejevita", plural: "Jeremejevitas", xp: 18000, probability: 0.06, rarity: "mythic", uniqueAmount: true, message: "🤍 ¡¡¡JEREMEJEVITA!!! Has encontrado una gema con forma de mitad de corazón. ¿Dónde estará su otra mitad?" },
 
     { id: "deathnote", name: "Death Note", plural: "Death Notes", xp: 22000, probability: 0.04, rarity: "artifact", uniqueAmount: true, message: "📓 Un cuaderno negro con un nombre escrito en la portada. Las instrucciones parecen absurdas... hasta que empiezas a leerlas." },
     { id: "dedosukuna", name: "Dedo de Sukuna", plural: "Dedos de Sukuna", xp: 30000, probability: 0.03, rarity: "artifact", uniqueAmount: true, message: "🖐️ Un dedo seco y ennegrecido desprende una energía maldita que te pone los pelos de punta. Definitivamente no parece algo que debas tocar." },
@@ -79,8 +79,8 @@ const RARITY_MULTIPLIER = {
     "rare": 1.5,
     "very_rare": 4,
     "legendary": 8,
-    "mythic": 3,
-    "artifact": 12
+    "mythic": 4,
+    "artifact": 11
 };
 
 function getMineralMultiplier(mineral, streak) {

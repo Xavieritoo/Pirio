@@ -408,9 +408,9 @@ function buildLoldleComponents(
  *
  * El XP base depende del intento.
  *
- * Intento 1 → 700 XP
- * Intento 2 → 650 XP
- * Intento 3 → 600 XP
+ * Intento 1 → 650 XP
+ * Intento 2 → 600 XP
+ * Intento 3 → 550 XP
  *
  * Después se aplica internamente el multiplicador de racha.
  *
@@ -423,7 +423,7 @@ function getLoldleBaseXp(
 ) {
   return Math.max(
     250,
-    700 - attempts * 50
+    650 - attempts * 50
   );
 }
 
