@@ -475,7 +475,7 @@ module.exports = {
 
         let gameFinished = false;
 
-        let currentTime = null;
+        let deadline = null;
 
         let timer = null;
 
@@ -524,10 +524,15 @@ module.exports = {
 
         function buildGameStatus(extraLine = "") {
 
-            const timeText =
+            const remainingMs =
                 gameStarted
-                    ? (currentTime / 1000).toFixed(1) + " segundos"
-                    : "Sin límite";
+                    ? Math.max(0, deadline - Date.now())
+                    : null;
+
+            const timeText =
+                remainingMs === null
+                    ? "Sin límite"
+                    : (remainingMs / 1000).toFixed(1) + " segundos";
 
             return (
 
@@ -973,26 +978,30 @@ module.exports = {
                 gameStarted = true;
 
 
-                currentTime =
-                    INITIAL_TIME;
-
-
                 /*
                 =====================================================
-                CONTEO REGRESIVO VISIBLE
-                =====================================================
+                TIEMPO BASADO EN TIMESTAMP REAL
 
-                Cada segundo se reduce currentTime y se actualiza el
-                mensaje del DM mostrando el tiempo restante. Cuando
-                llega a 0, la bomba explota (finishGame).
-
+                En lugar de restar 1000 en cada tick (setInterval
+                deriva y la cuenta atrás se desincroniza), se fija
+                una fecha límite y el tiempo restante se calcula
+                con Date.now(). Además, el mensaje del DM NO se
+                edita cada segundo: Discord limita las ediciones
+                (~5 cada 5 segundos) y saturar la API provoca
+                retardo en todas las respuestas del juego. Solo se
+                refresca cada 5s (y en el tramo final), sin await.
                 =====================================================
                 */
 
+                deadline =
+                    Date.now() + INITIAL_TIME;
+
+                let lastRenderedBucket = null;
+
+
                 timer =
                     setInterval(
-
-                        async () => {
+                        () => {
 
                             if (gameFinished) {
 
@@ -1006,61 +1015,81 @@ module.exports = {
 
 
                             const remaining =
-                                currentTime - 1000;
+                                deadline - Date.now();
 
 
                             if (remaining <= 0) {
 
-                                currentTime = 0;
+                                currentTimeCleanup();
 
-                                clearInterval(timer);
-
-                                timer = null;
-
-                                await finishGame();
+                                finishGame();
 
                                 return;
 
                             }
 
 
-                            currentTime = remaining;
+                            /*
+                            =========================================
+                            RENDERIZAR SOLO CADA 5 SEGUNDOS
+                            (y cada segundo en el tramo final <= 5s)
+                            =========================================
+                            */
+
+                            const bucket =
+                                remaining <= 5000
+                                    ? Math.ceil(remaining / 1000)
+                                    : Math.ceil(remaining / 5000);
+
+                            if (
+                                bucket === lastRenderedBucket
+                            ) {
+
+                                return;
+
+                            }
+
+                            lastRenderedBucket = bucket;
 
 
                             if (gameMessage) {
 
-                                try {
-
-                                    await updateGameMessage(
-
-                                        buildGameStatus(
-
-                                            "💣 **¡La bomba está a punto de explotar!**\n\n" +
-
-                                            "**Sigue escribiendo palabras con la sílaba.**"
-
-                                        ),
-
-                                        []
-
-                                    );
-
-                                } catch (error) {
+                                updateGameMessage(
+                                    buildGameStatus(
+                                        "💣 **¡La bomba está a punto de explotar!**\n\n" +
+                                        "**Sigue escribiendo palabras con la sílaba.**"
+                                    ),
+                                    []
+                                ).catch(error => {
 
                                     console.error(
                                         "Error actualizando cuenta atrás de Bomba:",
                                         error
                                     );
 
-                                }
+                                });
 
                             }
 
                         },
 
-                        1000
+                        100
 
                     );
+
+            };
+
+
+        const currentTimeCleanup =
+            () => {
+
+                if (timer) {
+
+                    clearInterval(timer);
+
+                    timer = null;
+
+                }
 
             };
 
@@ -1414,7 +1443,7 @@ module.exports = {
                     `🔤 Sílaba: **${syllable.toUpperCase()}**\n\n` +
 
                     `⏱️ Tiempo restante: **${(
-                        currentTime / 1000
+                        Math.max(0, deadline - Date.now()) / 1000
                     ).toFixed(1)} segundos**\n\n` +
 
                     `🎯 Puntos: **${score * POINTS_PER_WORD
