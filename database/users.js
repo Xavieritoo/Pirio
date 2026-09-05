@@ -372,6 +372,17 @@ function normalizeUser(user) {
         user.last_mining_date
       ),
 
+    /*
+     * ======================================================
+     * MINAS REALIZADAS HOY
+     * ======================================================
+     */
+
+    mining_count_today:
+      Number(
+        user.mining_count_today || 0
+      ),
+
 
     /*
      * ======================================================
@@ -649,7 +660,7 @@ async function addXp(
   if (!user) {
 
     throw new Error(
-      `No existe el usuario ${ discordId } al intentar añadir XP.`
+      `No existe el usuario ${discordId} al intentar añadir XP.`
     );
 
   }
@@ -963,7 +974,7 @@ async function updateUserFields(
 
         key =>
 
-          `${ key } = ?`
+          `${key} = ?`
 
       )
 
@@ -999,7 +1010,7 @@ async function updateUserFields(
     UPDATE users
 
 SET
-      ${ assignments },
+      ${assignments},
 updated_at = CURRENT_TIMESTAMP
 
     WHERE discord_id = ?

@@ -7,6 +7,10 @@ const {
     getMiningTop
 } = require("../database/users");
 
+const {
+    MINERALS: GAME_MINERALS
+} = require("./minar");
+
 /*
 
 ============================================================
@@ -21,231 +25,66 @@ valor de XP que tiene cada objeto en minar.js.
 ============================================================
 */
 
-const MINERALS = {
-
-    stone: {
-        name: "Piedra",
-        xp: 1,
-        emoji: "🪨"
-    },
-
-    coal: {
-        name: "Carbón",
-        xp: 2,
-        emoji: "⚫"
-    },
-
-    iron: {
-        name: "Hierro",
-        xp: 5,
-        emoji: "⛓️"
-    },
-
-    gold: {
-        name: "Oro",
-        xp: 15,
-        emoji: "🪙"
-    },
-
-    quartz: {
-        name: "Cuarzo",
-        xp: 25,
-        emoji: "🔮"
-    },
-
-    emerald: {
-        name: "Esmeralda",
-        xp: 50,
-        emoji: "💚"
-    },
-
-    ruby: {
-        name: "Rubí",
-        xp: 100,
-        emoji: "❤️"
-    },
-
-    diamond: {
-        name: "Diamante",
-        xp: 300,
-        emoji: "💎"
-    },
-
-    obsidian: {
-        name: "Obsidiana",
-        xp: 500,
-        emoji: "🖤"
-    },
-
-    blackopal: {
-        name: "Ópalo Negro",
-        xp: 750,
-        emoji: "🌑"
-    },
-
-    criptonita: {
-        name: "Criptonita",
-        xp: 900,
-        emoji: "☢️"
-    },
-
-    nukacola: {
-        name: "Nuka-Cola",
-        xp: 1100,
-        emoji: "🥤"
-    },
-
-    luckyblock: {
-        name: "Lucky Block",
-        xp: 1300,
-        emoji: "🍀"
-    },
-
-    paraiba: {
-        name: "Turmalina Paraíba",
-        xp: 1500,
-        emoji: "🩵"
-    },
-
-    leavemealone: {
-        name: "Leave Me Alone",
-        xp: 1700,
-        emoji: "👁️"
-    },
-
-    portalgun: {
-        name: "Portal Gun",
-        xp: 2000,
-        emoji: "🌀"
-    },
-
-    ancient: {
-        name: "Artefacto Antiguo",
-        xp: 2400,
-        emoji: "🏺"
-    },
-
-    raygun: {
-        name: "Pistola de Rayos",
-        xp: 2700,
-        emoji: "🔫"
-    },
-
-    keyblade: {
-        name: "Llave Espada",
-        xp: 3500,
-        emoji: "🗝️"
-    },
-
-    taaffeita: {
-        name: "Taaffeíta",
-        xp: 4000,
-        emoji: "💜"
-    },
-
-    omnitrix: {
-        name: "Omnitrix",
-        xp: 4800,
-        emoji: "⌚"
-    },
-
-    masterball: {
-        name: "Master Ball",
-        xp: 6000,
-        emoji: "🟣"
-    },
-
-    gomugomu: {
-        name: "Gomu Gomu no Mi",
-        xp: 6500,
-        emoji: "🍈"
-    },
-
-    indunnapple: {
-        name: "Manzana de Idunn",
-        xp: 7000,
-        emoji: "🍎"
-    },
-
-    behelit: {
-        name: "Behelit",
-        xp: 8000,
-        emoji: "👁️"
-    },
-
-    sarten: {
-        name: "Sartén",
-        xp: 9000,
-        emoji: "🍳"
-    },
-
-    painita: {
-        name: "Painita",
-        xp: 11000,
-        emoji: "🔥"
-    },
-
-    puppet: {
-        name: "Marioneta",
-        xp: 11000,
-        emoji: "🪆"
-    },
-
-    holygrenade: {
-        name: "Granada Sagrada",
-        xp: 14000,
-        emoji: "💣"
-    },
-
-    jeremejevita: {
-        name: "Jeremejevita",
-        xp: 18000,
-        emoji: "🤍"
-    },
-
-    deathnote: {
-        name: "Death Note",
-        xp: 22000,
-        emoji: "📓"
-    },
-
-    dedosukuna: {
-        name: "Dedo de Sukuna",
-        xp: 30000,
-        emoji: "🖐️"
-    },
-
-    musgravita: {
-        name: "Musgravita",
-        xp: 35000,
-        emoji: "🖤"
-    },
-
-    triforce: {
-        name: "Trifuerza",
-        xp: 42000,
-        emoji: "🔺"
-    },
-
-    dovahkiin: {
-        name: "Dovahkiin",
-        xp: 50000,
-        emoji: "🐉"
-    },
-
-    elpoder: {
-        name: "El Poder",
-        xp: 55000,
-        emoji: "⚡"
-    },
-
-    galdrabok: {
-        name: "Galdrabók",
-        xp: 70000,
-        emoji: "📕"
-    }
-
+const MINERAL_EMOJIS = {
+    stone: "\u{1FAA8}",
+    coal: "\u26AB",
+    iron: "\u26D3",
+    gold: "\u{1FA99}",
+    quartz: "\u{1F52E}",
+    emerald: "\u{1F49A}",
+    ruby: "\u2764",
+    diamond: "\u{1F48E}",
+    obsidian: "\u{1F5A4}",
+    blackopal: "\u{1F311}",
+    criptonita: "\u2622",
+    nukacola: "\u{1F964}",
+    luckyblock: "\u{1F340}",
+    paraiba: "\u{1FA7C}",
+    leavemealone: "\u{1F441}",
+    portalgun: "\u{1F300}",
+    ancient: "\u{1F3FA}",
+    raygun: "\u{1F52B}",
+    keyblade: "\u{1F5DD}",
+    taaffeita: "\u{1F49C}",
+    omnitrix: "\u231A",
+    masterball: "\u{1F7E3}",
+    gomugomu: "\u{1F348}",
+    indunnapple: "\u{1F34E}",
+    behelit: "\u{1F441}",
+    sarten: "\u{1F373}",
+    painita: "\u{1F525}",
+    puppet: "\u{1FA86}",
+    holygrenade: "\u{1F4A3}",
+    jeremejevita: "\u{1F90D}",
+    deathnote: "\u{1F4D3}",
+    dedosukuna: "\u{1F590}",
+    musgravita: "\u{1F5A4}",
+    triforce: "\u{1F53A}",
+    dovahkiin: "\u{1F409}",
+    elpoder: "\u26A1",
+    galdrabok: "\u{1F4D5}"
 };
+
+/*
+============================================================
+MAPA DE MINERALES PARA EL RANKING
+============================================================
+
+El nombre y la XP provienen directamente de minar.js,
+de modo que el ranking siempre coincide con los valores
+reales del minijuego.
+============================================================
+*/
+
+const MINERALS = {};
+
+for (const mineral of GAME_MINERALS) {
+    MINERALS[mineral.id] = {
+        name: mineral.name,
+        xp: mineral.xp,
+        emoji: MINERAL_EMOJIS[mineral.id] || ""
+    };
+}
 
 /*
 

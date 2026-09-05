@@ -31,7 +31,7 @@ CONFIGURACIÓN
 ============================================================
 */
 
-const INITIAL_TIME = 35000; // 35 segundos
+const WORD_TIME = 7000; // 7 segundos por palabra (se reinician al acertar)
 const POINTS_PER_WORD = 50; // 50 XP por palabra correcta
 
 const RE_SEND_EVERY = 8;     // reenviar el estado cada X mensajes
@@ -990,13 +990,46 @@ module.exports = {
                 (~5 cada 5 segundos) y saturar la API provoca
                 retardo en todas las respuestas del juego. Solo se
                 refresca cada 5s (y en el tramo final), sin await.
+
+                El temporizador se puede reiniciar en cualquier
+                momento con resetTimer() (se llama al acertar una
+                palabra), lo que restaura la cuenta a WORD_TIME.
                 =====================================================
                 */
 
-                deadline =
-                    Date.now() + INITIAL_TIME;
+                resetTimer();
 
-                let lastRenderedBucket = null;
+            };
+
+
+        const resetTimer =
+            () => {
+
+                /*
+                =========================================
+                REINICIAR CUENTA ATRÁS
+                =========================================
+
+                Limpia el intervalo anterior y arranca
+                uno nuevo con la fecha límite completa.
+
+                IMPORTANTE: NO hay contador visual. Editar
+                el mensaje cada segundo satura el límite de
+                ediciones de Discord (~5 cada 5 segundos)
+                y provoca que el procesado de las palabras
+                se quede "pillado". El tiempo restante solo
+                se muestra en los mensajes de estado que
+                se envían al acertar o fallar una palabra.
+                La explosión sigue siendo funcional a los
+                WORD_TIME milisegundos.
+                =========================================
+                */
+
+                currentTimeCleanup();
+
+
+                deadline =
+                    Date.now() + WORD_TIME;
 
 
                 timer =
@@ -1025,49 +1058,6 @@ module.exports = {
                                 finishGame();
 
                                 return;
-
-                            }
-
-
-                            /*
-                            =========================================
-                            RENDERIZAR SOLO CADA 5 SEGUNDOS
-                            (y cada segundo en el tramo final <= 5s)
-                            =========================================
-                            */
-
-                            const bucket =
-                                remaining <= 5000
-                                    ? Math.ceil(remaining / 1000)
-                                    : Math.ceil(remaining / 5000);
-
-                            if (
-                                bucket === lastRenderedBucket
-                            ) {
-
-                                return;
-
-                            }
-
-                            lastRenderedBucket = bucket;
-
-
-                            if (gameMessage) {
-
-                                updateGameMessage(
-                                    buildGameStatus(
-                                        "💣 **¡La bomba está a punto de explotar!**\n\n" +
-                                        "**Sigue escribiendo palabras con la sílaba.**"
-                                    ),
-                                    []
-                                ).catch(error => {
-
-                                    console.error(
-                                        "Error actualizando cuenta atrás de Bomba:",
-                                        error
-                                    );
-
-                                });
 
                             }
 
@@ -1223,11 +1213,13 @@ module.exports = {
 
                         "✅ **¡Partida iniciada!**\n\n" +
 
-                        "⏱️ La bomba cuenta **20 segundos**.\n\n" +
+                        `⏱️ Tienes **${WORD_TIME / 1000} segundos** por palabra.\n\n` +
 
-                        "**Escribe una palabra con la sílaba en el chat." +
+                        "**Cada palabra correcta reinicia la cuenta.**\n\n" +
 
-                        "** Cuantas más aciertes, más XP."
+                        "Escribe una palabra con la sílaba en el chat.\n\n" +
+
+                        "Cuantas más aciertes, más XP."
 
                     ),
 
@@ -1428,6 +1420,21 @@ module.exports = {
                         syllable
 
                     );
+
+
+                /*
+                =================================================
+                REINICIAR CUENTA ATRÁS
+                =================================================
+                *
+                * Cada palabra correcta desactiva la bomba
+                * actual y restaura los 6 segundos completos
+                * para la siguiente palabra.
+                *
+                =================================================
+                */
+
+                resetTimer();
 
 
                 /*

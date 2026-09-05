@@ -36,6 +36,27 @@ const MAX_STREAK_MULTIPLIER_STREAK = 50;
 const STREAK_MULTIPLIER_PER_LEVEL = 0.005;
 
 /*
+============================================================
+DÍAS DE GRACIA DE LA RACHA
+============================================================
+
+
+Número de días que puedes fallar sin perder la racha.
+
+Con valor 1 (comportamiento clásico): la racha se pierde
+si no juegas un día.
+
+Con valor 2: la racha se pierde si no juegas 2 días
+seguidos, es decir, todavía se mantiene si el último
+día jugado fue anteayer.
+
+
+============================================================
+*/
+
+const STREAK_GRACE_DAYS = 2;
+
+/*
 
 ============================================================
 OBTENER MULTIPLICADOR DE RACHA
@@ -400,28 +421,45 @@ async function registerDailyGame(
 
     /*
      * ========================================================
-     * OBTENER FECHA DE AYER
-     * ========================================================
-     */
-
-    const yesterday =
-        getPreviousDate(
-            today
-        );
-
-
-    /*
-     * ========================================================
      * CONTINUAR RACHA
      * ========================================================
      *
-     * Si jugó ayer, aumenta la racha.
+     * Si jugó dentro del margen de gracia (ayer o los días
+     * anteriores permitidos por STREAK_GRACE_DAYS), aumenta
+     * la racha.
      *
      * ========================================================
      */
 
+    const isWithinGrace =
+        (() => {
+
+            let referenceDate =
+                today;
+
+            for (let i = 0; i < STREAK_GRACE_DAYS; i++) {
+
+                referenceDate =
+                    getPreviousDate(
+                        referenceDate
+                    );
+
+                if (
+                    streakLastDate === referenceDate
+                ) {
+
+                    return true;
+
+                }
+
+            }
+
+            return false;
+
+        })();
+
     if (
-        streakLastDate === yesterday
+        isWithinGrace
     ) {
 
         const newStreak =
@@ -472,7 +510,8 @@ async function registerDailyGame(
      * RACHA PERDIDA
      * ========================================================
      *
-     * Si no jugó ayer, empieza una nueva racha desde 1.
+     * Si no jugó dentro del margen de gracia, empieza una
+     * nueva racha desde 1.
      *
      * ========================================================
      */
@@ -537,10 +576,10 @@ Devuelve:
 La racha actual si jugó hoy.
 
 
-La racha actual si jugó ayer.
+La racha actual si jugó ayer o anteayer.
 
 
-0 si lleva más de un día sin jugar.
+0 si lleva más de 2 días sin jugar.
 
 
 ============================================================
@@ -631,21 +670,27 @@ async function getUserStreak(
 
     /*
      * ========================================================
-     * JUGÓ AYER
+     * JUGÓ DENTRO DEL MARGEN DE GRACIA
      * ========================================================
      */
 
-    const yesterday =
-        getPreviousDate(
-            today
-        );
+    let referenceDate =
+        today;
 
+    for (let i = 0; i < STREAK_GRACE_DAYS; i++) {
 
-    if (
-        streakLastDate === yesterday
-    ) {
+        referenceDate =
+            getPreviousDate(
+                referenceDate
+            );
 
-        return currentStreak;
+        if (
+            streakLastDate === referenceDate
+        ) {
+
+            return currentStreak;
+
+        }
 
     }
 

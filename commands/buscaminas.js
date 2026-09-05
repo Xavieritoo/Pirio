@@ -986,12 +986,21 @@ module.exports = {
                 interaction.user.id,
 
                 {
-
                     daily_attempts:
                         (
                             user.daily_attempts ||
                             0
-                        ) + 1
+                        ) + 1,
+
+                    /*
+                     * Marcamos el diario como jugado
+                     * hoy para que no se pueda volver
+                     * a jugar y para que el perfil
+                     * muestre "Hoy" en último diario.
+                     */
+
+                    last_daily_date:
+                        today
 
                 }
 

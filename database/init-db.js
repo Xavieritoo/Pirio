@@ -33,6 +33,10 @@ async function initDatabase() {
         name: "daily_streak",
         definition: "INTEGER NOT NULL DEFAULT 0",
       },
+      {
+        name: "mining_count_today",
+        definition: "INTEGER NOT NULL DEFAULT 0",
+      },
     ];
 
     const added = [];

@@ -17,9 +17,9 @@ module.exports = {
       )
       .addFields(
         {
-          name: "⛏️ `Minar`",
+          name: "🎯 `Diario`",
           value:
-            "Una vez al día puedes usar **/minar** para excavar en busca de minerales. Los minerales tienen distintos valores: cuanto más raro sea lo que encuentres, **más experiencia (XP)** ganarás. Solo puedes minar **una vez al día**, así que no olvides pasar por la mina cada jornada."
+            "Cada día hay **un minijuego distinto**. Usa **/diario** para saber cuál es el de hoy y cómo se juega. No te adelanto cuáles son: la sorpresa es parte de la diversión. ¡Ser más activo y jugar a diario es lo que hará crecer a tu cuenta más rápido!"
         },
         {
           name: "🔥 `Racha diaria`",
@@ -27,9 +27,9 @@ module.exports = {
             "Cada día que completes el minijuego diario, sumas **un día a tu racha**. Si te saltas un día, la racha **se reinicia desde cero**. Cuanto más larga sea tu racha, **mayores serán tus recompensas**: se aplica un bonus de experiencia que mejora cuantos más días consecutivos lleves jugando, además de conseguir mejores recompensar en la mina. ¡La constancia tiene premio!"
         },
         {
-          name: "🎯 `Diario`",
+          name: "⛏️ `Minar`",
           value:
-            "Cada día hay **un minijuego distinto**. Usa **/diario** para saber cuál es el de hoy y cómo se juega. No te adelanto cuáles son: la sorpresa es parte de la diversión. ¡Ser más activo y jugar a diario es lo que hará crecer a tu cuenta más rápido!"
+            "Una vez al día puedes usar **/minar** para excavar en busca de minerales. Los minerales tienen distintos valores: cuanto más raro sea lo que encuentres, **más experiencia (XP)** ganarás. Si ganas el **minijuego diario**, desbloquearás una **segunda mina** ese mismo día."
         },
         {
           name: "🏁 `Para empezar`",

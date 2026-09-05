@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     streak_last_date DATE,
     most_valuable_mineral TEXT,
     last_mining_date DATE,
+    mining_count_today INTEGER NOT NULL DEFAULT 0,
     voice_joined_at TIMESTAMPTZ,
     last_voice_xp_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

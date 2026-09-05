@@ -101,6 +101,19 @@ const MAX_TIME = 30000;
 
 const activeGames = new Map();
 
+/*
+============================================================
+CANAL ORIGINAL DE CADA JUGADOR CON PARTIDA PENDIENTE
+============================================================
+
+Guarda el canal del servidor donde se ejecutó /frase
+para poder publicar allí el resultado público,
+aunque el juego transcurra por mensaje directo.
+============================================================
+*/
+
+const pendingGames = new Map();
+
 
 
 // ============================================================
@@ -207,7 +220,7 @@ function calculateXp(
     }
 
     const baseXp =
-        correctWords * 35;
+        correctWords * 30;
 
     const timeRatio =
         Math.max(
@@ -270,8 +283,7 @@ function createGameEmbed(secondsLeft) {
 
     let description =
         `${timerText}\n\n` +
-        "Escribe la frase utilizando:\n" +
-        "`/frase contenido: tu frase aquí`\n\n";
+        "✍️ **Escribe la frase directamente en este chat.**\n\n";
 
 
     if (
@@ -601,15 +613,16 @@ async function finishGame(
 
 
     // --------------------------------------------------------
-    // Buscar canal
+    // Buscar canal ORIGINAL del servidor (donde se ejecutó
+    // /frase). El juego ocurre por MD, pero el resultado
+    // público debe aparecer en el canal del servidor.
     // --------------------------------------------------------
 
     let channel =
-        interaction.channel;
+        null;
 
 
     if (
-        !channel &&
         game.channelId
     ) {
 
@@ -623,11 +636,26 @@ async function finishGame(
         } catch (error) {
 
             console.error(
-                "No se pudo obtener el canal:",
+                "No se pudo obtener el canal original:",
                 error
             );
 
         }
+
+    }
+
+
+    // Respaldo: si no se pudo recuperar el canal original
+    // y la interacción proviene de un canal válido.
+
+    if (
+        !channel &&
+        interaction.channel &&
+        interaction.channel.guild
+    ) {
+
+        channel =
+            interaction.channel;
 
     }
 
@@ -659,21 +687,7 @@ module.exports = {
             .setName("frase")
 
             .setDescription(
-                "Escribe la frase del día lo más rápido posible"
-            )
-
-            .addStringOption(option =>
-
-                option
-
-                    .setName("contenido")
-
-                    .setDescription(
-                        "La frase que has escrito"
-                    )
-
-                    .setRequired(false)
-
+                "Escribe la frase del día lo más rápido posible (se juega por MD)"
             ),
 
 
@@ -683,23 +697,6 @@ module.exports = {
     // ========================================================
 
     async execute(interaction) {
-
-        const answer =
-            interaction.options.getString(
-                "contenido"
-            );
-
-
-        if (answer !== null) {
-
-            return handleAnswer(
-                interaction,
-                answer
-            );
-
-        }
-
-
 
         // ----------------------------------------------------
         // Comprobar diario
@@ -931,7 +928,9 @@ module.exports = {
 
                     "⚡ Cuanto más rápido y preciso seas, más puntos conseguirás.\n\n" +
 
-                    "Prepara el comando `/frase contenido:` y pulsa **Empezar** cuando estés listo.\n\n" +
+                    "Pulsa **Empezar** cuando estés listo y escribe la frase\n" +
+
+                    "directamente en este chat.\n\n" +
 
                     "⚠️ Si no envías la frase en 30 segundos, la partida se dará por perdida."
 
@@ -945,18 +944,69 @@ module.exports = {
                 });
 
 
+        // ----------------------------------------------------
+        // Guardar canal original para el resultado público
+        // ----------------------------------------------------
+
+        pendingGames.set(
+            interaction.user.id,
+            interaction.channel.id
+        );
+
 
         // ----------------------------------------------------
-        // Todo privado
+        // Enviar el juego por MD
+        // ----------------------------------------------------
+
+        let dmChannel;
+
+        try {
+
+            dmChannel =
+                await interaction.user.createDM();
+
+            await dmChannel.send({
+
+                embeds:
+                    [embed],
+
+                components:
+                    [row]
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "No se pudo enviar la Frase por MD:",
+                error
+            );
+
+            pendingGames.delete(
+                interaction.user.id
+            );
+
+            return interaction.reply({
+
+                content:
+                    "❌ No he podido enviarte el minijuego por mensaje directo.\n\n📩 Revisa tu configuración de privacidad y permite mensajes directos de miembros de este servidor.",
+
+                ephemeral:
+                    true
+
+            });
+
+        }
+
+
+        // ----------------------------------------------------
+        // Confirmación en el canal
         // ----------------------------------------------------
 
         return interaction.reply({
 
-            embeds:
-                [embed],
-
-            components:
-                [row],
+            content:
+                "📩 Te he enviado la **Frase del día** por mensaje directo. Ábrela y pulsa **Empezar**.",
 
             ephemeral:
                 true
@@ -1147,12 +1197,28 @@ module.exports = {
         // Crear partida
         // ----------------------------------------------------
 
+        /*
+         * El canal original es el del servidor donde
+         * se ejecutó /frase (guardado en pendingGames),
+         * para publicar allí el resultado público.
+         */
+
+        const originalChannelId =
+            pendingGames.get(interaction.user.id) ||
+            interaction.channel?.id;
+
+
+        pendingGames.delete(
+            interaction.user.id
+        );
+
+
         const game = {
 
             phrase,
 
             channelId:
-                interaction.channel.id,
+                originalChannelId,
 
             startedAt:
                 Date.now(),
@@ -1170,11 +1236,42 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Collector
+        // Canal directo del jugador
+        // ----------------------------------------------------
+
+        let dmChannel;
+
+        try {
+
+            dmChannel =
+                await interaction.user.createDM();
+
+        } catch (error) {
+
+            console.error(
+                "No se pudo abrir el MD para Frase:",
+                error
+            );
+
+            return interaction.reply({
+
+                content:
+                    "❌ No he podido abrir tu chat privado.",
+
+                ephemeral:
+                    true
+
+            });
+
+        }
+
+
+        // ----------------------------------------------------
+        // Collector (en el MD)
         // ----------------------------------------------------
 
         const collector =
-            interaction.channel.createMessageCollector({
+            dmChannel.createMessageCollector({
 
                 filter:
                     message =>
@@ -1588,190 +1685,3 @@ module.exports = {
     }
 
 };
-
-
-
-// ============================================================
-// PROCESAR /FRASE CONTENIDO:
-// ============================================================
-
-async function handleAnswer(
-    interaction,
-    answer
-) {
-
-    // --------------------------------------------------------
-    // Buscar partida
-    // --------------------------------------------------------
-
-    const game =
-        activeGames.get(
-            interaction.user.id
-        );
-
-
-
-    // --------------------------------------------------------
-    // No hay partida
-    // --------------------------------------------------------
-
-    if (!game) {
-
-        return interaction.reply({
-
-            content:
-                "❌ No tienes ninguna partida de **Frase** activa. Usa `/frase` y pulsa **Empezar** primero.",
-
-            ephemeral:
-                true
-
-        });
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Comprobar canal
-    // --------------------------------------------------------
-
-    if (
-        game.channelId !==
-        interaction.channel.id
-    ) {
-
-        return interaction.reply({
-
-            content:
-                "❌ Debes enviar la frase en el mismo canal donde comenzaste la partida.",
-
-            ephemeral:
-                true
-
-        });
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Comprobar tiempo
-    // --------------------------------------------------------
-
-    const elapsed =
-        Date.now() -
-        game.startedAt;
-
-
-    if (
-        elapsed >= MAX_TIME
-    ) {
-
-        activeGames.delete(
-            interaction.user.id
-        );
-
-
-        if (
-            game.timer
-        ) {
-
-            clearInterval(
-                game.timer
-            );
-
-            game.timer =
-                null;
-
-        }
-
-
-        if (
-            game.collector
-        ) {
-
-            game.collector.stop(
-                "timeout-command"
-            );
-
-        }
-
-
-        return finishGame(
-
-            interaction,
-
-            game,
-
-            "",
-
-            true
-
-        );
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Eliminar partida
-    // --------------------------------------------------------
-
-    activeGames.delete(
-        interaction.user.id
-    );
-
-
-
-    // --------------------------------------------------------
-    // Detener cronómetro
-    // --------------------------------------------------------
-
-    if (
-        game.timer
-    ) {
-
-        clearInterval(
-            game.timer
-        );
-
-        game.timer =
-            null;
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Detener collector
-    // --------------------------------------------------------
-
-    if (
-        game.collector
-    ) {
-
-        game.collector.stop(
-            "submitted"
-        );
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Finalizar
-    // --------------------------------------------------------
-
-    await finishGame(
-
-        interaction,
-
-        game,
-
-        answer,
-
-        false
-
-    );
-
-}

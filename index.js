@@ -7,7 +7,8 @@ const {
     Client,
     GatewayIntentBits,
     Collection,
-    Events
+    Events,
+    ActivityType
 } = require("discord.js");
 
 
@@ -142,6 +143,24 @@ client.once(
 
         console.log(
             `Conectado como ${client.user.tag}`
+        );
+
+
+        /*
+         * ======================================================
+         * ESTADO DEL BOT
+         * ======================================================
+         *
+         * Muestra "Jugando a /help" bajo el nombre del bot.
+         *
+         * ======================================================
+         */
+
+        client.user.setActivity(
+            "/help",
+            {
+                type: ActivityType.Playing
+            }
         );
 
 
