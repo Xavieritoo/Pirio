@@ -912,7 +912,13 @@ module.exports = {
                             nextAttempt,
 
                         daily_solved:
-                            1
+                            1,
+
+                        wins:
+                            Number(
+                                user.wins ||
+                                0
+                            ) + 1
 
                     }
 

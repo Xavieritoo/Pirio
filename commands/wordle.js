@@ -102,43 +102,43 @@ if (
  * EMOJIS DE LETRAS
  * ============================================================
  *
- * Se utilizan emojis Unicode para representar las letras.
+ * Se utilizan los emojis de Discord "regional_indicator"
+ * para representar cada letra del alfabeto.
  *
- * Discord no dispone de una versión cuadrada Unicode para
- * todas las letras del alfabeto, por lo que se utilizan las
- * variantes disponibles más parecidas visualmente.
+ * Discord no dispone de un regional_indicator para la ñ,
+ * por lo que se mantiene la bandera de España.
  *
  * ============================================================
  */
 
 const LETTER_EMOJIS = {
 
-  a: "🅰️",
-  b: "🅱️",
-  c: "©️",
-  d: "🔤",
-  e: "📧",
-  f: "🅵",
-  g: "🅶",
-  h: "🅷",
-  i: "ℹ️",
-  j: "🅹",
-  k: "🅺",
-  l: "🅻",
-  m: "Ⓜ️",
-  n: "🅽",
-  o: "🅾️",
-  p: "🅿️",
-  q: "🇶",
-  r: "®️",
-  s: "🆂",
-  t: "🆃",
-  u: "🆄",
-  v: "🆅",
-  w: "🆆",
-  x: "❎",
-  y: "🆈",
-  z: "🆉",
+  a: ":regional_indicator_a:",
+  b: ":regional_indicator_b:",
+  c: ":regional_indicator_c:",
+  d: ":regional_indicator_d:",
+  e: ":regional_indicator_e:",
+  f: ":regional_indicator_f:",
+  g: ":regional_indicator_g:",
+  h: ":regional_indicator_h:",
+  i: ":regional_indicator_i:",
+  j: ":regional_indicator_j:",
+  k: ":regional_indicator_k:",
+  l: ":regional_indicator_l:",
+  m: ":regional_indicator_m:",
+  n: ":regional_indicator_n:",
+  o: ":regional_indicator_o:",
+  p: ":regional_indicator_p:",
+  q: ":regional_indicator_q:",
+  r: ":regional_indicator_r:",
+  s: ":regional_indicator_s:",
+  t: ":regional_indicator_t:",
+  u: ":regional_indicator_u:",
+  v: ":regional_indicator_v:",
+  w: ":regional_indicator_w:",
+  x: ":regional_indicator_x:",
+  y: ":regional_indicator_y:",
+  z: ":regional_indicator_z:",
 
   ñ: "🇪🇸"
 
@@ -310,7 +310,7 @@ function getFeedback(
  *
  * Ejemplo:
  *
- * 🅿️ 🅴 🆁 🆁 🅾️
+ * :regional_indicator_p: :regional_indicator_e: :regional_indicator_r: :regional_indicator_r: :regional_indicator_o:
  * 🟩 ⬛ 🟨 ⬛ 🟩
  *
  * ============================================================
@@ -376,6 +376,22 @@ module.exports = {
 
     /*
      * ====================================================
+     * RECONOCER LA INTERACCIÓN INMEDIATAMENTE
+     * ====================================================
+     *
+     * La validación y las consultas a la base de datos
+     * pueden superar los 3 segundos, lo que provocaría un
+     * "Unknown interaction". Se hace deferReply() al inicio
+     * y se usa editReply() en el resto del flujo.
+     * ====================================================
+     */
+
+    await interaction.deferReply({
+      ephemeral: true
+    });
+
+    /*
+     * ====================================================
      * COMPROBAR MINIJUEGO DIARIO
      * ====================================================
      */
@@ -389,7 +405,7 @@ module.exports = {
       "wordle"
     ) {
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
           "❌ Hoy el minijuego de diario no es Wordle. Usa `/diario` para saber cuál es el comando disponible.",
@@ -420,7 +436,7 @@ module.exports = {
       )
     ) {
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
           "❌ La palabra debe tener 5 letras y solo puede incluir letras sin acentos.",
@@ -505,7 +521,7 @@ module.exports = {
       );
 
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
           "❌ Ha ocurrido un error al registrar tu partida. Inténtalo de nuevo.",
@@ -542,7 +558,10 @@ module.exports = {
             0,
 
           daily_solved:
-            0
+            0,
+
+          last_daily_date:
+            today
 
         }
 
@@ -561,7 +580,7 @@ module.exports = {
       dailySolved === 1
     ) {
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
           "✅ Ya has completado el Wordle diario de hoy. Vuelve mañana con uno nuevo.",
@@ -584,7 +603,7 @@ module.exports = {
       MAX_ATTEMPTS
     ) {
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
           `❌ ${interaction.user.username} ha perdido el Wordle de hoy.`,
@@ -709,7 +728,10 @@ module.exports = {
             ) + 1,
 
           daily_solved:
-            1
+            1,
+
+          last_daily_date:
+            today
 
         },
 
@@ -724,7 +746,7 @@ module.exports = {
        * =================================================
  */
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
 
@@ -768,7 +790,7 @@ module.exports = {
       MAX_ATTEMPTS
     ) {
 
-      return interaction.reply({
+      return interaction.editReply({
 
         content:
 
@@ -787,7 +809,7 @@ module.exports = {
      * ====================================================
  */
 
-    return interaction.reply({
+    return interaction.editReply({
 
       content:
 

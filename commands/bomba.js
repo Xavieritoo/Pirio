@@ -850,6 +850,12 @@ module.exports = {
                                 (
                                     currentUser?.daily_solved ||
                                     0
+                                ) + 1,
+
+                            wins:
+                                Number(
+                                    currentUser?.wins ||
+                                    0
                                 ) + 1
 
                         }

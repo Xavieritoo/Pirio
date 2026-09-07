@@ -32,7 +32,9 @@ const MAX_COLORS = 6;
 
 const STARTING_COLORS = 4;
 
-const POINTS_PER_ROUND = 100;
+const POINTS_PER_ROUND = 50;
+
+const MAX_ROUNDS = 25;
 
 const FLASH_TIME = 800;
 
@@ -364,7 +366,7 @@ function wait(ms) {
  */
 
 async function showSequence(
-    interaction,
+    gameMessage,
     sequence,
     round,
     points,
@@ -379,7 +381,7 @@ async function showSequence(
 
     try {
 
-        await interaction.editReply({
+        await gameMessage.edit({
 
             content:
                 createGameContent(
@@ -441,7 +443,7 @@ async function showSequence(
 
         try {
 
-            await interaction.editReply({
+            await gameMessage.edit({
 
                 content:
                     createGameContent(
@@ -493,7 +495,7 @@ async function showSequence(
 
         try {
 
-            await interaction.editReply({
+            await gameMessage.edit({
 
                 content:
                     createGameContent(
@@ -544,7 +546,7 @@ async function showSequence(
 
     try {
 
-        await interaction.editReply({
+        await gameMessage.edit({
 
             content:
                 createGameContent(
@@ -779,7 +781,9 @@ module.exports = {
 
         const finishGame =
             async (
-                reason = "error"
+                reason = "error",
+
+                won = false
             ) => {
 
                 if (
@@ -926,6 +930,12 @@ module.exports = {
                                         currentUser?.daily_solved ||
                                         0
                                     )
+                                ) + 1,
+
+                            wins:
+                                Number(
+                                    currentUser?.wins ||
+                                    0
                                 ) + 1
 
                         }
@@ -952,14 +962,17 @@ module.exports = {
                  */
 
                 const finalMessage =
+                    won
 
-                    `💥 **¡HAS FALLADO!**\n\n` +
+                        ? `🏆 **¡HAS COMPLETADO SIMÓN DICE!**\n\n` +
+                        `🧠 Has superado las **${round - 1} rondas**.\n\n` +
+                        `⭐ Puntos conseguidos: **${xpGain} XP**\n\n` +
+                        `🎉 ¡Enhorabuena, has llegado al límite!`
 
-                    `🧠 Has completado **${round - 1} rondas**.\n\n` +
-
-                    `⭐ Puntos conseguidos: **${xpGain} XP**\n\n` +
-
-                    `💀 ¡Mejor suerte mañana!`;
+                        : `💥 **¡HAS FALLADO!**\n\n` +
+                        `🧠 Has completado **${round - 1} rondas**.\n\n` +
+                        `⭐ Puntos conseguidos: **${xpGain} XP**\n\n` +
+                        `💀 ¡Mejor suerte mañana!`;
 
 
                 /*
@@ -970,23 +983,49 @@ module.exports = {
 
                 try {
 
-                    await interaction.editReply({
+                    if (
+                        gameMessage
+                    ) {
 
-                        content:
-                            finalMessage,
+                        await gameMessage.edit({
 
-                        components:
-                            createColorButtons(
+                            content:
+                                finalMessage,
 
-                                getAvailableColors(
-                                    round
-                                ),
+                            components:
+                                createColorButtons(
 
-                                true
+                                    getAvailableColors(
+                                        round
+                                    ),
 
-                            )
+                                    true
 
-                    });
+                                )
+
+                        });
+
+                    } else {
+
+                        await interaction.editReply({
+
+                            content:
+                                finalMessage,
+
+                            components:
+                                createColorButtons(
+
+                                    getAvailableColors(
+                                        round
+                                    ),
+
+                                    true
+
+                                )
+
+                        });
+
+                    }
 
                 } catch (error) {
 
@@ -994,6 +1033,42 @@ module.exports = {
                         "Error mostrando resultado de Simón:",
                         error
                     );
+
+                    /*
+                     * Si el mensaje del juego ya no existe
+                     * (fue borrado, etc.), enviamos el
+                     * resultado como mensaje nuevo para que
+                     * el jugador no se quede sin respuesta.
+                     */
+
+                    try {
+
+                        await interaction.channel.send({
+
+                            content:
+                                finalMessage,
+
+                            components:
+                                createColorButtons(
+
+                                    getAvailableColors(
+                                        round
+                                    ),
+
+                                    true
+
+                                )
+
+                        });
+
+                    } catch (fallbackError) {
+
+                        console.error(
+                            "Error enviando resultado de Simón como mensaje nuevo:",
+                            fallbackError
+                        );
+
+                    }
 
                 }
 
@@ -1009,10 +1084,13 @@ module.exports = {
                     await interaction.channel.send({
 
                         content:
+                            won
 
-                            `💥 **¡${interaction.user.username} ha fallado Simón Dice!**\n` +
+                                ? `🏆 **¡${interaction.user.username} ha completado Simón Dice!**\n` +
+                                `🧠 Ha superado **${round - 1} rondas** y ha conseguido **${xpGain} XP**.`
 
-                            `🧠 Ha completado **${round - 1} rondas** y ha conseguido **${xpGain} XP**.`
+                                : `💥 **¡${interaction.user.username} ha fallado Simón Dice!**\n` +
+                                `🧠 Ha completado **${round - 1} rondas** y ha conseguido **${xpGain} XP**.`
 
                     });
 
@@ -1327,6 +1405,104 @@ module.exports = {
 
         /*
          * ====================================================
+         * MENSAJE DEL JUEGO
+         * ====================================================
+         *
+         * Obtenemos el mensaje una sola vez y lo editamos
+         * directamente con message.edit().
+         *
+         * El token de la interacción original caduca a los
+         * 15 minutos, por lo que en partidas largas
+         * interaction.editReply() empezaría a fallar y el
+         * juego se quedaría colgado. Editar el mensaje no
+         * depende de ese token.
+         *
+         * ====================================================
+         */
+
+        let gameMessage = null;
+
+        /*
+         * El mensaje efímero de la respuesta NO se puede editar
+         * con message.edit() (la API responde Unknown Message
+         * para mensajes efímeros), por lo que la partida se
+         * juega en un mensaje público normal del canal.
+         */
+
+        try {
+
+            await interaction.editReply({
+
+                content:
+                    "🎮 **Simón Dice ha empezado.** Sigue el juego aquí abajo ⬇️",
+
+                components: []
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Error actualizando el mensaje de inicio de Simón:",
+                error
+            );
+
+        }
+
+        try {
+
+            gameMessage =
+                await interaction.channel.send({
+
+                    content:
+                        createGameContent(
+
+                            1,
+
+                            0,
+
+                            "👀 **Prepárate... observa atentamente.**"
+
+                        ),
+
+                    components:
+                        createColorButtons(
+
+                            getAvailableColors(1),
+
+                            true
+
+                        )
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "Error enviando el mensaje de Simón:",
+                error
+            );
+
+            try {
+
+                await interaction.editReply({
+
+                    content:
+                        "❌ No se ha podido iniciar el minijuego. Inténtalo de nuevo.",
+
+                    components: []
+
+                });
+
+            } catch { }
+
+            return;
+
+        }
+
+
+        /*
+         * ====================================================
          * BUCLE PRINCIPAL
          * ====================================================
          */
@@ -1362,7 +1538,7 @@ module.exports = {
             const sequenceShown =
                 await showSequence(
 
-                    interaction,
+                    gameMessage,
 
                     sequence,
 
@@ -1380,6 +1556,15 @@ module.exports = {
                 gameFinished
             ) {
 
+                /*
+                 * Si la secuencia no se pudo mostrar
+                 * (error de red, etc.), cerramos la
+                 * partida correctamente para que el
+                 * jugador no se quede colgado.
+                 */
+
+                await finishGame("error");
+
                 break;
 
             }
@@ -1394,8 +1579,8 @@ module.exports = {
             await new Promise(
                 resolve => {
 
-                    interaction
-                        .fetchReply()
+                    Promise
+                        .resolve(gameMessage)
                         .then(
                             gameMessage => {
 
@@ -1516,6 +1701,27 @@ module.exports = {
                                                 round++;
 
 
+                                                /*
+                                                 * ¿Ha alcanzado el límite
+                                                 * de rondas?
+                                                 */
+
+                                                if (
+                                                    round >
+                                                    MAX_ROUNDS
+                                                ) {
+
+                                                    collector.stop(
+                                                        "victory"
+                                                    );
+
+                                                    resolve();
+
+                                                    return;
+
+                                                }
+
+
                                                 collector.stop(
                                                     "round_complete"
                                                 );
@@ -1531,7 +1737,7 @@ module.exports = {
 
                                                 try {
 
-                                                    await interaction.editReply({
+                                                    await gameMessage.edit({
 
                                                         content:
 
@@ -1645,6 +1851,30 @@ module.exports = {
                                             reason ===
                                             "round_complete"
                                         ) {
+
+                                            resolve();
+
+                                            return;
+
+                                        }
+
+
+                                        /*
+                                         * =================================================
+                                         * LÍMITE DE RONDAS ALCANZADO
+                                         * =================================================
+                                         */
+
+                                        if (
+                                            reason ===
+                                            "victory"
+                                        ) {
+
+                                            await finishGame(
+                                                "victory",
+
+                                                true
+                                            );
 
                                             resolve();
 

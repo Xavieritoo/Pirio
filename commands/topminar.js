@@ -62,7 +62,7 @@ const MINERAL_EMOJIS = {
     triforce: "\u{1F53A}",
     dovahkiin: "\u{1F409}",
     elpoder: "\u26A1",
-    galdrabok: "\u{1F4D5}"
+    enchiridion: "\u{1F4D5}"
 };
 
 /*

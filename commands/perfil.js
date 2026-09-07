@@ -227,8 +227,8 @@ const MINERAL_NAMES = {
   musgravita:
     "Musgravita",
 
-  galdrabok:
-    "Galdrabók"
+  enchiridion:
+    "Enchiridion"
 
   ,criptonita: "Criptonita"
   ,nukacola: "Nuka-Cola"
