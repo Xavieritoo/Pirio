@@ -712,8 +712,7 @@ module.exports = {
             return interaction.reply({
 
                 content:
-                    `💀 Ya has agotado tus ${MAX_ATTEMPTS} intentos de hoy.\n` +
-                    `🎵 La canción era **${song.label}**.`,
+                    `💀 Ya has agotado tus ${MAX_ATTEMPTS} intentos de hoy.`,
 
                 ephemeral: true
 
@@ -1022,9 +1021,7 @@ module.exports = {
 
                 content:
 
-                    `💀 **${interaction.user.username}** ha fallado la canción de hoy.\n\n` +
-
-                    `🎵 La canción era **${song.label}**.`,
+                    `💀 **${interaction.user.username}** ha fallado la canción de hoy.`,
 
                 ephemeral: false
 

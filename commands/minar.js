@@ -85,8 +85,8 @@ const RARITY_MULTIPLIER = {
     "rare": 1.5,
     "very_rare": 4,
     "legendary": 8,
-    "mythic": 4,
-    "artifact": 11
+    "mythic": 3,
+    "artifact": 10
 };
 
 function getMineralMultiplier(mineral, streak) {
