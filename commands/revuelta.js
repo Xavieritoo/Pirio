@@ -401,14 +401,18 @@ module.exports = {
       currentAttempts >= MAX_ATTEMPTS
     ) {
 
-      return interaction.reply({
+      await interaction.deferReply({
+        ephemeral: true
+      });
+
+      await interaction.channel.send({
 
         content:
-          `💀 ${interaction.user.username} ha perdido la Revuelta de hoy.`,
-
-        ephemeral: false
+          `💀 ${interaction.user.username} ha perdido la Revuelta de hoy.`
 
       });
+
+      return interaction.deleteReply();
 
     }
 
@@ -558,14 +562,18 @@ module.exports = {
       freshAttempts >= MAX_ATTEMPTS
     ) {
 
-      return interaction.reply({
+      await interaction.deferReply({
+        ephemeral: true
+      });
+
+      await interaction.channel.send({
 
         content:
-          `💀 ${interaction.user.username} ha perdido la Revuelta de hoy.`,
-
-        ephemeral: false
+          `💀 ${interaction.user.username} ha perdido la Revuelta de hoy.`
 
       });
+
+      return interaction.deleteReply();
 
     }
 
@@ -710,14 +718,18 @@ module.exports = {
        * - El cálculo realizado.
        */
 
-      return interaction.reply({
+      await interaction.deferReply({
+        ephemeral: true
+      });
+
+      await interaction.channel.send({
 
         content:
-          `🎉 **${interaction.user.username}** ha ganado la Revuelta de hoy y ha conseguido **${xpGain} XP**.`,
-
-        ephemeral: false
+          `🎉 **${interaction.user.username}** ha ganado la Revuelta de hoy y ha conseguido **${xpGain} XP**.`
 
       });
+
+      return interaction.deleteReply();
 
     }
 
@@ -756,14 +768,18 @@ module.exports = {
       nextAttempt >= MAX_ATTEMPTS
     ) {
 
-      return interaction.reply({
+      await interaction.deferReply({
+        ephemeral: true
+      });
+
+      await interaction.channel.send({
 
         content:
-          `💀 **${interaction.user.username}** ha perdido la Revuelta de hoy.`,
-
-        ephemeral: false
+          `💀 **${interaction.user.username}** ha perdido la Revuelta de hoy.`
 
       });
+
+      return interaction.deleteReply();
 
     }
 

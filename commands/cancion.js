@@ -955,14 +955,18 @@ module.exports = {
              * ==================================================
              */
 
-            return interaction.reply({
+            await interaction.deferReply({
+                ephemeral: true
+            });
+
+            await interaction.channel.send({
 
                 content:
-                    `🎉 **${interaction.user.username}** ha acertado la canción de hoy y ha ganado **${xpGain} XP**.`,
-
-                ephemeral: false
+                    `🎉 **${interaction.user.username}** ha acertado la canción de hoy y ha ganado **${xpGain} XP**.`
 
             });
+
+            return interaction.deleteReply();
 
         }
 
@@ -1017,15 +1021,19 @@ module.exports = {
             nextAttempt >= MAX_ATTEMPTS
         ) {
 
-            return interaction.reply({
+            await interaction.deferReply({
+                ephemeral: true
+            });
+
+            await interaction.channel.send({
 
                 content:
 
-                    `💀 **${interaction.user.username}** ha fallado la canción de hoy.`,
-
-                ephemeral: false
+                    `💀 **${interaction.user.username}** ha fallado la canción de hoy.`
 
             });
+
+            return interaction.deleteReply();
 
         }
 

@@ -26,147 +26,254 @@ const {
   applyStreakMultiplier
 } = require("../database/streaks");
 
-const MAX_ATTEMPTS = 3;
+/*
+ * ============================================================
+ * NÚMERO DE INTENTOS
+ * ============================================================
+ *
+ * El número de intentos depende de la dificultad del campeón,
+ * que a su vez define cuántos emojis (pistas) tiene:
+ *
+ * - Fácil  → 3 emojis → 3 intentos.
+ * - Medio  → 4 emojis → 4 intentos.
+ * - Difícil → 5 emojis → 5 intentos.
+ *
+ * Se calcula con getMaxAttempts(champion).
+ * ============================================================
+ */
 
 const CHAMPIONS = [
-  { value: "ahri", label: "Ahri", emojis: ["🦊", "✨", "🌙"] },
-  { value: "akali", label: "Akali", emojis: ["🗡️", "🌙", "💨"] },
-  { value: "alistar", label: "Alistar", emojis: ["🐂", "💪", "👊"] },
-  { value: "amumu", label: "Amumu", emojis: ["🧟", "😢", "🕯️"] },
-  { value: "anivia", label: "Anivia", emojis: ["❄️", "🕊️", "🧊"] },
-  { value: "annie", label: "Annie", emojis: ["🧸", "🔥", "🎀"] },
-  { value: "aphelios", label: "Aphelios", emojis: ["🌙", "🔫", "🌑"] },
-  { value: "ashe", label: "Ashe", emojis: ["🏹", "❄️", "👑"] },
-  { value: "aurelionsol", label: "Aurelion Sol", emojis: ["🌟", "🐉", "🌌"] },
-  { value: "azir", label: "Azir", emojis: ["👑", "🦅", "🏺"] },
-  { value: "bard", label: "Bard", emojis: ["🔔", "🌌", "🎶"] },
-  { value: "blitzcrank", label: "Blitzcrank", emojis: ["🤖", "🧲", "⚡"] },
-  { value: "brand", label: "Brand", emojis: ["🔥", "💀", "🌋"] },
-  { value: "braum", label: "Braum", emojis: ["🛡️", "💪", "🍺"] },
-  { value: "caitlyn", label: "Caitlyn", emojis: ["🔫", "🎩", "🎯"] },
-  { value: "camille", label: "Camille", emojis: ["🦾", "🗡️", "👠"] },
-  { value: "cassiopeia", label: "Cassiopeia", emojis: ["🐍", "🌙", "🔮"] },
-  { value: "chogath", label: "Cho'Gath", emojis: ["🦖", "🍽️", "👑"] },
-  { value: "corki", label: "Corki", emojis: ["✈️", "💣", "🧨"] },
-  { value: "darius", label: "Darius", emojis: ["🪓", "🩸", "👑"] },
-  { value: "diana", label: "Diana", emojis: ["🌙", "🪓", "✨"] },
-  { value: "drmundo", label: "Dr. Mundo", emojis: ["🧟", "🔪", "💀"] },
-  { value: "ekko", label: "Ekko", emojis: ["⏳", "⚔️", "💥"] },
-  { value: "elise", label: "Elise", emojis: ["🕷️", "🕸️", "💀"] },
-  { value: "evelynn", label: "Evelynn", emojis: ["😈", "🖤", "💋"] },
-  { value: "ezreal", label: "Ezreal", emojis: ["🔫", "✨", "💥"] },
-  { value: "fiddlesticks", label: "Fiddlesticks", emojis: ["🌾", "🪓", "👻"] },
-  { value: "fiora", label: "Fiora", emojis: ["🗡️", "💃", "🎯"] },
-  { value: "fizz", label: "Fizz", emojis: ["🐟", "🔱", "🌊"] },
-  { value: "galio", label: "Galio", emojis: ["🗿", "🛡️", "⚖️"] },
-  { value: "gangplank", label: "Gangplank", emojis: ["🏴‍☠️", "💣", "⚓"] },
-  { value: "garen", label: "Garen", emojis: ["🛡️", "⚔️", "👑"] },
-  { value: "gnar", label: "Gnar", emojis: ["🦖", "🪓", "👊"] },
-  { value: "gragas", label: "Gragas", emojis: ["🍺", "⚔️", "🐻"] },
-  { value: "graves", label: "Graves", emojis: ["🔫", "💨", "🚬"] },
-  { value: "hecarim", label: "Hecarim", emojis: ["🐎", "⚔️", "💀"] },
-  { value: "heimerdinger", label: "Heimerdinger", emojis: ["🧠", "🔧", "🧪"] },
-  { value: "illaoi", label: "Illaoi", emojis: ["🪢", "💪", "🐙"] },
-  { value: "irelia", label: "Irelia", emojis: ["🗡️", "🌀", "🎐"] },
-  { value: "ivern", label: "Ivern", emojis: ["🌳", "🧚", "🌿"] },
-  { value: "janna", label: "Janna", emojis: ["🌬️", "☔", "🌪️"] },
-  { value: "jarvaniv", label: "Jarvan IV", emojis: ["⚔️", "🛡️", "👑"] },
-  { value: "jax", label: "Jax", emojis: ["🪓", "🏋️", "💥"] },
-  { value: "jhin", label: "Jhin", emojis: ["🎭", "🔫", "🎯"] },
-  { value: "jinx", label: "Jinx", emojis: ["💣", "🔫", "🎆"] },
-  { value: "kaisa", label: "Kai'Sa", emojis: ["🔫", "🌌", "✨"] },
-  { value: "kalista", label: "Kalista", emojis: ["🗡️", "👻", "⚰️"] },
-  { value: "karma", label: "Karma", emojis: ["🪷", "✨", "🌀"] },
-  { value: "karthus", label: "Karthus", emojis: ["💀", "🎼", "⛓️"] },
-  { value: "kassadin", label: "Kassadin", emojis: ["🌀", "⚡", "🔮"] },
-  { value: "katarina", label: "Katarina", emojis: ["🔪", "🩸", "💃"] },
-  { value: "kayle", label: "Kayle", emojis: ["🦅", "⚔️", "✨"] },
-  { value: "kayn", label: "Kayn", emojis: ["🪓", "🌪️", "🖤"] },
-  { value: "kennen", label: "Kennen", emojis: ["⚡", "🌀", "🐉"] },
-  { value: "khazix", label: "Kha'Zix", emojis: ["🦗", "🔪", "🦴"] },
-  { value: "kindred", label: "Kindred", emojis: ["🐺", "🐑", "🌙"] },
-  { value: "kled", label: "Kled", emojis: ["🐴", "🛡️", "⚔️"] },
-  { value: "kogmaw", label: "Kog'Maw", emojis: ["🐛", "🦴", "💧"] },
-  { value: "leblanc", label: "LeBlanc", emojis: ["🪞", "🔮", "🎭"] },
-  { value: "leesin", label: "Lee Sin", emojis: ["👊", "🌀", "🧘"] },
-  { value: "leona", label: "Leona", emojis: ["☀️", "🛡️", "⚔️"] },
-  { value: "lissandra", label: "Lissandra", emojis: ["❄️", "🔮", "🧊"] },
-  { value: "lucian", label: "Lucian", emojis: ["🔫", "💥", "🌕"] },
-  { value: "lulu", label: "Lulu", emojis: ["🧚", "🎩", "✨"] },
-  { value: "lux", label: "Lux", emojis: ["✨", "📘", "🌟"] },
-  { value: "malphite", label: "Malphite", emojis: ["🪨", "🛡️", "🌋"] },
-  { value: "malzahar", label: "Malzahar", emojis: ["🔮", "🟣", "👁️"] },
-  { value: "maokai", label: "Maokai", emojis: ["🌳", "🍃", "🐻"] },
-  { value: "masteryi", label: "Master Yi", emojis: ["🗡️", "👁️", "⚡"] },
-  { value: "missfortune", label: "Miss Fortune", emojis: ["🔫", "💋", "💰"] },
-  { value: "mordekaiser", label: "Mordekaiser", emojis: ["🪨", "🛡️", "💀"] },
-  { value: "morgana", label: "Morgana", emojis: ["🕊️", "⛓️", "🌑"] },
-  { value: "nami", label: "Nami", emojis: ["🧜‍♀️", "🌊", "🐟"] },
-  { value: "nasus", label: "Nasus", emojis: ["🐺", "🪓", "⚱️"] },
-  { value: "nautilus", label: "Nautilus", emojis: ["⚓", "🛡️", "🌊"] },
-  { value: "neeko", label: "Neeko", emojis: ["🦎", "🌺", "✨"] },
-  { value: "nocturne", label: "Nocturne", emojis: ["🌑", "🗡️", "🖤"] },
-  { value: "nunu", label: "Nunu", emojis: ["❄️", "🐻", "🍪"] },
-  { value: "olaf", label: "Olaf", emojis: ["🪓", "🍺", "🛡️"] },
-  { value: "orianna", label: "Orianna", emojis: ["🤖", "⚙️", "⚽"] },
-  { value: "ornn", label: "Ornn", emojis: ["🐻", "🔨", "🔥"] },
-  { value: "pantheon", label: "Pantheon", emojis: ["🛡️", "🏹", "🏛️"] },
-  { value: "poppy", label: "Poppy", emojis: ["🔨", "🛡️", "🌟"] },
-  { value: "pyke", label: "Pyke", emojis: ["🔪", "🌊", "💀"] },
-  { value: "qiyana", label: "Qiyana", emojis: ["🌿", "🌀", "🪨"] },
-  { value: "quinn", label: "Quinn", emojis: ["🦅", "🏹", "🌲"] },
-  { value: "rakan", label: "Rakan", emojis: ["🕊️", "✨", "🦅"] },
-  { value: "rammus", label: "Rammus", emojis: ["🛡️", "🌀", "🦔"] },
-  { value: "reksai", label: "Rek'Sai", emojis: ["🦗", "🌋", "🦴"] },
-  { value: "rengar", label: "Rengar", emojis: ["🐆", "⚔️", "🩸"] },
-  { value: "riven", label: "Riven", emojis: ["🗡️", "💔", "🌪️"] },
-  { value: "rumble", label: "Rumble", emojis: ["🔥", "🛠️", "🤖"] },
-  { value: "ryze", label: "Ryze", emojis: ["📜", "🔮", "⚡"] },
-  { value: "samira", label: "Samira", emojis: ["🔫", "💥", "❤️"] },
-  { value: "senna", label: "Senna", emojis: ["🌑", "🔫", "💀"] },
-  { value: "seraphine", label: "Seraphine", emojis: ["🎤", "🎶", "✨"] },
-  { value: "sett", label: "Sett", emojis: ["👊", "🥊", "🐻"] },
-  { value: "shaco", label: "Shaco", emojis: ["🃏", "🎭", "🔪"] },
-  { value: "shen", label: "Shen", emojis: ["🛡️", "💨", "🥷"] },
-  { value: "sejuani", label: "Sejuani", emojis: ["❄️", "🐴", "🛡️"] },
-  { value: "shyvana", label: "Shyvana", emojis: ["🐲", "🔥", "🛡️"] },
-  { value: "singed", label: "Singed", emojis: ["🧪", "💨", "☠️"] },
-  { value: "sion", label: "Sion", emojis: ["⚔️", "🛡️", "💀"] },
-  { value: "sivir", label: "Sivir", emojis: ["🛡️", "🏹", "🌪️"] },
-  { value: "skarner", label: "Skarner", emojis: ["🦂", "🛡️", "🏜️"] },
-  { value: "sona", label: "Sona", emojis: ["🎼", "🎻", "✨"] },
-  { value: "swain", label: "Swain", emojis: ["🐦", "🌀", "🧠"] },
-  { value: "sylas", label: "Sylas", emojis: ["⛓️", "🔥", "⚔️"] },
-  { value: "tahmkench", label: "Tahm Kench", emojis: ["🐸", "🍽️", "🌊"] },
-  { value: "taliyah", label: "Taliyah", emojis: ["🪨", "💨", "🌪️"] },
-  { value: "talon", label: "Talon", emojis: ["🗡️", "🖤", "💨"] },
-  { value: "taric", label: "Taric", emojis: ["💎", "✨", "🛡️"] },
-  { value: "tristana", label: "Tristana", emojis: ["💣", "🎯", "🚀"] },
-  { value: "trundle", label: "Trundle", emojis: ["🪓", "❄️", "🧱"] },
-  { value: "tryndamere", label: "Tryndamere", emojis: ["🗡️", "🔥", "💪"] },
-  { value: "twistedfate", label: "Twisted Fate", emojis: ["🎴", "🃏", "✨"] },
-  { value: "twitch", label: "Twitch", emojis: ["🧪", "🧟", "🏹"] },
-  { value: "udyr", label: "Udyr", emojis: ["🐻", "🐍", "🐅"] },
-  { value: "urgot", label: "Urgot", emojis: ["🔫", "🦾", "☠️"] },
-  { value: "varus", label: "Varus", emojis: ["🏹", "💀", "💨"] },
-  { value: "veigar", label: "Veigar", emojis: ["🧙", "🔮", "⚫"] },
-  { value: "velkoz", label: "Vel'Koz", emojis: ["👁️", "🧬", "🌌"] },
-  { value: "vi", label: "Vi", emojis: ["🥊", "👊", "⚡"] },
-  { value: "viktor", label: "Viktor", emojis: ["🤖", "⚙️", "🔩"] },
-  { value: "vladimir", label: "Vladimir", emojis: ["🩸", "🧛", "🌑"] },
-  { value: "volibear", label: "Volibear", emojis: ["🐻", "⚡", "🌩️"] },
-  { value: "warwick", label: "Warwick", emojis: ["🐺", "🔪", "🩸"] },
-  { value: "wukong", label: "Wukong", emojis: ["🪓", "🐒", "💨"] },
-  { value: "xayah", label: "Xayah", emojis: ["🪶", "🏹", "🌺"] },
-  { value: "xerath", label: "Xerath", emojis: ["🔮", "⚡", "✨"] },
-  { value: "xinzhao", label: "Xin Zhao", emojis: ["⚔️", "🐴", "🏹"] },
-  { value: "yone", label: "Yone", emojis: ["🗡️", "🌪️", "👻"] },
-  { value: "yorick", label: "Yorick", emojis: ["⚰️", "💀", "🪦"] },
-  { value: "yuumi", label: "Yuumi", emojis: ["😺", "📖", "✨"] },
-  { value: "zac", label: "Zac", emojis: ["🟢", "💪", "🌀"] },
-  { value: "ziggs", label: "Ziggs", emojis: ["💣", "🎇", "🧨"] },
-  { value: "zilean", label: "Zilean", emojis: ["⏳", "🕰️", "✨"] }
+  { value: "ahri", label: "Ahri", difficulty: "easy", emojis: ["🦊", "✨", "🌙"] },
+  { value: "akali", label: "Akali", difficulty: "easy", emojis: ["🗡️", "🌙", "💨"] },
+  { value: "alistar", label: "Alistar", difficulty: "easy", emojis: ["🐂", "💪", "👊"] },
+  { value: "amumu", label: "Amumu", difficulty: "medium", emojis: ["🧟", "😢", "🕯️", "⚰️"] },
+  { value: "anivia", label: "Anivia", difficulty: "hard", emojis: ["❄️", "🕊️", "🧊", "🥚", "🌨️"] },
+  { value: "annie", label: "Annie", difficulty: "easy", emojis: ["🧸", "🔥", "🎀"] },
+  { value: "aphelios", label: "Aphelios", difficulty: "hard", emojis: ["🌙", "🔫", "🌑", "🗡️", "⏳"] },
+  { value: "ashe", label: "Ashe", difficulty: "easy", emojis: ["🏹", "❄️", "👑"] },
+  { value: "aurelionsol", label: "Aurelion Sol", difficulty: "medium", emojis: ["🌟", "🐉", "🌌", "☄️"] },
+  { value: "azir", label: "Azir", difficulty: "hard", emojis: ["👑", "🦅", "🏺", "☀️", "🏜️"] },
+  { value: "bard", label: "Bard", difficulty: "medium", emojis: ["🔔", "🌌", "🧔🏼‍♀️", "🌀"] },
+  { value: "blitzcrank", label: "Blitzcrank", difficulty: "easy", emojis: ["🤖", "🧲", "⚡"] },
+  { value: "brand", label: "Brand", difficulty: "easy", emojis: ["🔥", "💀", "🌋"] },
+  { value: "braum", label: "Braum", difficulty: "medium", emojis: ["🛡️", "💪", "🍺", "❄️"] },
+  { value: "caitlyn", label: "Caitlyn", difficulty: "easy", emojis: ["🔫", "🎩", "🎯"] },
+  { value: "camille", label: "Camille", difficulty: "medium", emojis: ["🦾", "🗡️", "👠", "⚙️"] },
+  { value: "cassiopeia", label: "Cassiopeia", difficulty: "hard", emojis: ["🐍", "🌙", "🔮", "☠️", "🪨"] },
+  { value: "chogath", label: "Cho'Gath", difficulty: "hard", emojis: ["🦖", "🍽️", "👑", "🦴", "🧬"] },
+  { value: "corki", label: "Corki", difficulty: "hard", emojis: ["✈️", "💣", "🧨", "🔫", "🚀"] },
+  { value: "darius", label: "Darius", difficulty: "easy", emojis: ["🪓", "🩸", "👑"] },
+  { value: "diana", label: "Diana", difficulty: "medium", emojis: ["🌙", "🗡️", "✨", "🌑"] },
+  { value: "drmundo", label: "Dr. Mundo", difficulty: "easy", emojis: ["🧟", "🔪", "💀"] }, //Seguir revisando
+  { value: "ekko", label: "Ekko", difficulty: "easy", emojis: ["⏳", "⚔️", "💥"] },
+  { value: "elise", label: "Elise", difficulty: "medium", emojis: ["🕷️", "🕸️", "💀", "👑"] },
+  { value: "evelynn", label: "Evelynn", difficulty: "easy", emojis: ["😈", "🖤", "💋"] },
+  { value: "ezreal", label: "Ezreal", difficulty: "easy", emojis: ["🔫", "✨", "💥"] },
+  { value: "fiddlesticks", label: "Fiddlesticks", difficulty: "medium", emojis: ["🌾", "🪓", "👻", "🐦"] },
+  { value: "fiora", label: "Fiora", difficulty: "medium", emojis: ["🗡️", "💃", "🎯", "🌹"] },
+  { value: "fizz", label: "Fizz", difficulty: "easy", emojis: ["🐟", "🔱", "🌊"] },
+  { value: "galio", label: "Galio", difficulty: "medium", emojis: ["🗿", "🛡️", "⚖️", "🕊️"] },
+  { value: "gangplank", label: "Gangplank", difficulty: "medium", emojis: ["🏴‍☠️", "💣", "⚓", "🍊"] },
+  { value: "garen", label: "Garen", difficulty: "easy", emojis: ["🛡️", "⚔️", "👑"] },
+  { value: "gnar", label: "Gnar", difficulty: "medium", emojis: ["🦖", "🪓", "👊", "🪃"] },
+  { value: "gragas", label: "Gragas", difficulty: "medium", emojis: ["🍺", "⚔️", "🐻", "🛢️"] },
+  { value: "graves", label: "Graves", difficulty: "easy", emojis: ["🔫", "💨", "🚬"] },
+  { value: "hecarim", label: "Hecarim", difficulty: "medium", emojis: ["🐎", "⚔️", "💀", "👻"] },
+  { value: "heimerdinger", label: "Heimerdinger", difficulty: "hard", emojis: ["🧠", "🔧", "🧪", "🤖", "🛠️"] },
+  { value: "illaoi", label: "Illaoi", difficulty: "hard", emojis: ["🪢", "💪", "🐙", "🛐", "🌊"] },
+  { value: "irelia", label: "Irelia", difficulty: "easy", emojis: ["🗡️", "🌀", "🎐"] },
+  { value: "ivern", label: "Ivern", difficulty: "hard", emojis: ["🌳", "🧚", "🌿", "🦌", "🍃"] },
+  { value: "janna", label: "Janna", difficulty: "medium", emojis: ["🌬️", "☔", "🌪️", "🕊️"] },
+  { value: "jarvaniv", label: "Jarvan IV", difficulty: "medium", emojis: ["⚔️", "🛡️", "👑", "🚩"] },
+  { value: "jax", label: "Jax", difficulty: "medium", emojis: ["🪓", "🏋️", "💥", "🥋"] },
+  { value: "jhin", label: "Jhin", difficulty: "medium", emojis: ["🎭", "🔫", "🎯", "🌹"] },
+  { value: "jinx", label: "Jinx", difficulty: "easy", emojis: ["💣", "🔫", "🎆"] },
+  { value: "kaisa", label: "Kai'Sa", difficulty: "easy", emojis: ["🔫", "🌌", "✨"] },
+  { value: "kalista", label: "Kalista", difficulty: "hard", emojis: ["🗡️", "👻", "⚰️", "🖤", "🩸"] },
+  { value: "karma", label: "Karma", difficulty: "medium", emojis: ["🪷", "✨", "🌀", "🧘"] },
+  { value: "karthus", label: "Karthus", difficulty: "hard", emojis: ["💀", "🎼", "⛓️", "🕯️", "🎤"] },
+  { value: "kassadin", label: "Kassadin", difficulty: "hard", emojis: ["🌀", "⚡", "🔮", "🗡️", "🌌"] },
+  { value: "katarina", label: "Katarina", difficulty: "easy", emojis: ["🔪", "🩸", "💃"] },
+  { value: "kayle", label: "Kayle", difficulty: "medium", emojis: ["🦅", "⚔️", "✨", "👼"] },
+  { value: "kayn", label: "Kayn", difficulty: "medium", emojis: ["🪓", "🌪️", "🖤", "🔴"] },
+  { value: "kennen", label: "Kennen", difficulty: "medium", emojis: ["⚡", "🌀", "🎯", "🥷"] },
+  { value: "khazix", label: "Kha'Zix", difficulty: "medium", emojis: ["🦗", "🔪", "🦴", "🧬"] },
+  { value: "kindred", label: "Kindred", difficulty: "medium", emojis: ["🐺", "🐑", "🌙", "🏹"] },
+  { value: "kled", label: "Kled", difficulty: "hard", emojis: ["🐴", "🛡️", "⚔️", "🦎", "😤"] },
+  { value: "kogmaw", label: "Kog'Maw", difficulty: "hard", emojis: ["🐛", "🦴", "💧", "🦠", "☠️"] },
+  { value: "leblanc", label: "LeBlanc", difficulty: "medium", emojis: ["🪞", "🔮", "🎭", "🟣"] },
+  { value: "leesin", label: "Lee Sin", difficulty: "easy", emojis: ["👊", "🌀", "🧘"] },
+  { value: "leona", label: "Leona", difficulty: "easy", emojis: ["☀️", "🛡️", "⚔️"] },
+  { value: "lissandra", label: "Lissandra", difficulty: "hard", emojis: ["❄️", "🔮", "🧊", "👑", "💀"] },
+  { value: "lucian", label: "Lucian", difficulty: "easy", emojis: ["🔫", "💥", "🌕"] },
+  { value: "lulu", label: "Lulu", difficulty: "medium", emojis: ["🧚", "🎩", "✨", "🟣"] },
+  { value: "lux", label: "Lux", difficulty: "easy", emojis: ["✨", "🪄", "🌟"] },
+  { value: "malphite", label: "Malphite", difficulty: "easy", emojis: ["🪨", "🛡️", "🌋"] },
+  { value: "malzahar", label: "Malzahar", difficulty: "hard", emojis: ["🔮", "🟣", "👁️", "🐛", "🌀"] },
+  { value: "maokai", label: "Maokai", difficulty: "medium", emojis: ["🌳", "🍃", "🐻", "🪵"] },
+  { value: "masteryi", label: "Master Yi", difficulty: "easy", emojis: ["🗡️", "👁️", "⚡"] },
+  { value: "missfortune", label: "Miss Fortune", difficulty: "easy", emojis: ["🔫", "💋", "💰"] },
+  { value: "mordekaiser", label: "Mordekaiser", difficulty: "medium", emojis: ["⛓️", "🛡️", "💀", "⚔️"] },
+  { value: "morgana", label: "Morgana", difficulty: "easy", emojis: ["🕊️", "⛓️", "🌑"] },
+  { value: "nami", label: "Nami", difficulty: "easy", emojis: ["🧜‍♀️", "🌊", "🐟"] },
+  { value: "nasus", label: "Nasus", difficulty: "medium", emojis: ["🐺", "🪓", "⚱️", "🏜️"] },
+  { value: "nautilus", label: "Nautilus", difficulty: "medium", emojis: ["⚓", "🛡️", "🌊", "🐙"] },
+  { value: "neeko", label: "Neeko", difficulty: "hard", emojis: ["🦎", "🌺", "✨", "🎭", "🌈"] },
+  { value: "nocturne", label: "Nocturne", difficulty: "medium", emojis: ["🌑", "🗡️", "🖤", "👁️"] },
+  { value: "nunu", label: "Nunu", difficulty: "medium", emojis: ["❄️", "🐻", "🍪", "🎵"] },
+  { value: "olaf", label: "Olaf", difficulty: "medium", emojis: ["🪓", "🍺", "🛡️", "❄️"] },
+  { value: "orianna", label: "Orianna", difficulty: "medium", emojis: ["🤖", "⚙️", "⚽", "🎶"] },
+  { value: "ornn", label: "Ornn", difficulty: "hard", emojis: ["🐏", "🔨", "🔥", "⚒️", "❄️"] },
+  { value: "pantheon", label: "Pantheon", difficulty: "medium", emojis: ["🛡️", "🏹", "🏛️", "🗡️"] },
+  { value: "poppy", label: "Poppy", difficulty: "medium", emojis: ["🔨", "🛡️", "🌟", "⛏️"] },
+  { value: "pyke", label: "Pyke", difficulty: "easy", emojis: ["🔪", "🌊", "💀"] },
+  { value: "qiyana", label: "Qiyana", difficulty: "hard", emojis: ["🌿", "🌀", "🪨", "🌊", "👑"] },
+  { value: "quinn", label: "Quinn", difficulty: "hard", emojis: ["🦅", "🏹", "🌲", "🗡️", "🕵️"] },
+  { value: "rakan", label: "Rakan", difficulty: "medium", emojis: ["🕊️", "✨", "🦅", "💃"] },
+  { value: "rammus", label: "Rammus", difficulty: "medium", emojis: ["🛡️", "🌀", "🦔", "🏜️"] },
+  { value: "reksai", label: "Rek'Sai", difficulty: "hard", emojis: ["🦗", "🌋", "🦴", "🕳️", "👁️"] },
+  { value: "rengar", label: "Rengar", difficulty: "medium", emojis: ["🐆", "⚔️", "🩸", "🌿"] },
+  { value: "riven", label: "Riven", difficulty: "easy", emojis: ["🗡️", "🟢", "👩🏻‍🦳​"] },
+  { value: "rumble", label: "Rumble", difficulty: "hard", emojis: ["🔥", "🛠️", "🤖", "⚙️", "🚀"] },
+  { value: "ryze", label: "Ryze", difficulty: "hard", emojis: ["📜", "🔮", "⚡", "🌍", "🌀"] },
+  { value: "samira", label: "Samira", difficulty: "easy", emojis: ["🔫", "💥", "❤️"] },
+  { value: "senna", label: "Senna", difficulty: "easy", emojis: ["🌑", "🔫", "💀"] },
+  { value: "seraphine", label: "Seraphine", difficulty: "easy", emojis: ["🎤", "🎶", "✨"] },
+  { value: "sett", label: "Sett", difficulty: "easy", emojis: ["👊", "🥊", "🐻"] },
+  { value: "shaco", label: "Shaco", difficulty: "medium", emojis: ["🃏", "🎭", "🔪", "💨"] },
+  { value: "shen", label: "Shen", difficulty: "medium", emojis: ["🛡️", "💨", "🥷", "⚖️"] },
+  { value: "sejuani", label: "Sejuani", difficulty: "hard", emojis: ["❄️", "🐴", "🛡️", "🐗", "🔨"] },
+  { value: "shyvana", label: "Shyvana", difficulty: "medium", emojis: ["🐲", "🔥", "🛡️", "🦎"] },
+  { value: "singed", label: "Singed", difficulty: "medium", emojis: ["🧪", "💨", "☠️", "🛢️"] },
+  { value: "sion", label: "Sion", difficulty: "medium", emojis: ["⚔️", "🛡️", "💀", "🪓"] },
+  { value: "sivir", label: "Sivir", difficulty: "easy", emojis: ["🛡️", "🏹", "🌪️"] },
+  { value: "skarner", label: "Skarner", difficulty: "hard", emojis: ["🦂", "🛡️", "🏜️", "💎", "🪨"] },
+  { value: "sona", label: "Sona", difficulty: "easy", emojis: ["🎼", "🎻", "✨"] },
+  { value: "swain", label: "Swain", difficulty: "medium", emojis: ["🐦", "🌀", "🧠", "🦅"] },
+  { value: "sylas", label: "Sylas", difficulty: "medium", emojis: ["⛓️", "🔥", "⚔️", "👑"] },
+  { value: "tahmkench", label: "Tahm Kench", difficulty: "hard", emojis: ["🐸", "🍽️", "🌊", "💋", "💰"] },
+  { value: "taliyah", label: "Taliyah", difficulty: "hard", emojis: ["🪨", "💨", "🌪️", "🏔️", "🧵"] },
+  { value: "talon", label: "Talon", difficulty: "easy", emojis: ["🗡️", "🖤", "💨"] },
+  { value: "taric", label: "Taric", difficulty: "medium", emojis: ["💎", "✨", "🛡️", "🔨"] },
+  { value: "tristana", label: "Tristana", difficulty: "easy", emojis: ["💣", "🎯", "🚀"] },
+  { value: "trundle", label: "Trundle", difficulty: "hard", emojis: ["🪓", "❄️", "🧊", "👑", "🐗"] },
+  { value: "tryndamere", label: "Tryndamere", difficulty: "easy", emojis: ["🗡️", "🔥", "💪"] },
+  { value: "twistedfate", label: "Twisted Fate", difficulty: "medium", emojis: ["🎴", "🃏", "✨", "🎩"] },
+  { value: "twitch", label: "Twitch", difficulty: "easy", emojis: ["🧪", "🧟", "🏹"] },
+  { value: "udyr", label: "Udyr", difficulty: "hard", emojis: ["🐻", "🐍", "🐅", "🐢", "🥋"] },
+  { value: "urgot", label: "Urgot", difficulty: "hard", emojis: ["🔫", "🦾", "☠️", "⛓️", "🕷️"] },
+  { value: "varus", label: "Varus", difficulty: "medium", emojis: ["🏹", "💀", "💨", "🟣"] },
+  { value: "veigar", label: "Veigar", difficulty: "easy", emojis: ["🧙", "🔮", "⚫"] },
+  { value: "velkoz", label: "Vel'Koz", difficulty: "hard", emojis: ["👁️", "🧬", "🌌", "🦑", "⚡"] },
+  { value: "vi", label: "Vi", difficulty: "easy", emojis: ["🥊", "👊", "⚡"] },
+  { value: "viktor", label: "Viktor", difficulty: "hard", emojis: ["🤖", "⚙️", "🦾", "🔮", "⚡"] },
+  { value: "vladimir", label: "Vladimir", difficulty: "medium", emojis: ["🩸", "🧛", "🌑", "🦇"] },
+  { value: "volibear", label: "Volibear", difficulty: "medium", emojis: ["🐻", "⚡", "🌩️", "🌲"] },
+  { value: "warwick", label: "Warwick", difficulty: "easy", emojis: ["🐺", "🔪", "🩸"] },
+  { value: "wukong", label: "Wukong", difficulty: "medium", emojis: ["🪓", "🐒", "💨", "☁️"] },
+  { value: "xayah", label: "Xayah", difficulty: "medium", emojis: ["🪶", "🏹", "🌺", "💜"] },
+  { value: "xerath", label: "Xerath", difficulty: "hard", emojis: ["🔮", "⚡", "✨", "☀️", "👑"] },
+  { value: "xinzhao", label: "Xin Zhao", difficulty: "medium", emojis: ["⚔️", "🐴", "🏹", "👑"] },
+  { value: "yone", label: "Yone", difficulty: "easy", emojis: ["🗡️", "🌪️", "👻"] },
+  { value: "yorick", label: "Yorick", difficulty: "hard", emojis: ["⚰️", "💀", "🪦", "⛏️", "👰"] },
+  { value: "yuumi", label: "Yuumi", difficulty: "easy", emojis: ["😺", "📖", "✨"] },
+  { value: "zac", label: "Zac", difficulty: "medium", emojis: ["🟢", "💪", "🌀", "🧪"] },
+  { value: "ziggs", label: "Ziggs", difficulty: "medium", emojis: ["💣", "🎇", "🧨", "💥"] },
+  { value: "zilean", label: "Zilean", difficulty: "hard", emojis: ["⏳", "🕰️", "✨", "⏱️", "🌌"] },
+  { value: "aatrox", label: "Aatrox", difficulty: "medium", emojis: ["🗡️", "🔥", "💀", "🩸"] },
+  { value: "akshan", label: "Akshan", difficulty: "medium", emojis: ["🪝", "🔫", "😎", "💥"] },
+  { value: "ambessa", label: "Ambessa", difficulty: "hard", emojis: ["⚔️", "🛡️", "🔥", "👑", "🦾"] },
+  { value: "aurora", label: "Aurora", difficulty: "easy", emojis: ["☀️", "✨", "🪶"] },
+  { value: "belveth", label: "Bel'Veth", difficulty: "hard", emojis: ["👑", "🟣", "🕳️", "🧠", "🐜"] },
+  { value: "briar", label: "Briar", difficulty: "hard", emojis: ["⛓️", "🎭", "🩸", "🌙", "😢"] },
+  { value: "draven", label: "Draven", difficulty: "easy", emojis: ["🪓", "⭐", "👏"] },
+  { value: "hwei", label: "Hwei", difficulty: "hard", emojis: ["🖌️", "🎨", "✨", "🖤", "🌗"] },
+  { value: "jayce", label: "Jayce", difficulty: "hard", emojis: ["🔨", "⚙️", "🧠", "💥", "🧪"] },
+  { value: "lillia", label: "Lillia", difficulty: "easy", emojis: ["🦌", "🌼", "✨"] },
+  { value: "milio", label: "Milio", difficulty: "easy", emojis: ["🔥", "🎇", "✨"] },
+  { value: "nidalee", label: "Nidalee", difficulty: "medium", emojis: ["🐆", "🩸", "🌿", "🐾"] },
+  { value: "nilah", label: "Nilah", difficulty: "easy", emojis: ["💧", "🌊", "💃"] },
+  { value: "rell", label: "Rell", difficulty: "hard", emojis: ["🐴", "🛡️", "⚙️", "🗡️", "💜"] },
+  { value: "smolder", label: "Smolder", difficulty: "hard", emojis: ["🐉", "🔥", "🌋", "💥", "😤"] },
+  { value: "soraka", label: "Soraka", difficulty: "easy", emojis: ["🌧️", "🪶", "☀️"] },
+  { value: "teemo", label: "Teemo", difficulty: "easy", emojis: ["🍄", "🎯", "☠️"] },
+  { value: "thresh", label: "Thresh", difficulty: "medium", emojis: ["⛓️", "🪝", "🕯️", "👻"] },
+  { value: "vayne", label: "Vayne", difficulty: "medium", emojis: ["🏹", "🌙", "🎯", "😈"] },
+  { value: "viego", label: "Viego", difficulty: "hard", emojis: ["👑", "🗡️", "💍", "🌫️", "💀"] },
+  { value: "zeri", label: "Zeri", difficulty: "easy", emojis: ["⚡", "🔫", "​👈"] },
+  { value: "gwen", label: "Gwen", difficulty: "medium", emojis: ["🧵", "✂️", "✨", "🌫️"] },
+  { value: "ksante", label: "K'Sante", difficulty: "medium", emojis: ["🗡️", "💪", "🏜️", "✨"] },
+  { value: "locke", label: "Locke", difficulty: "medium", emojis: ["🔨", "😈", "🕯️", "💀"] },
+  { value: "mel", label: "Mel", difficulty: "medium", emojis: ["🪞", "👁️", "💎", "🖤"] },
+  { value: "naafiri", label: "Naafiri", difficulty: "medium", emojis: ["🐕", "🦴", "🏜️", "🩸"] },
+  { value: "renata", label: "Renata", difficulty: "medium", emojis: ["🧪", "💼", "🎧", "💰"] },
+  { value: "renekton", label: "Renekton", difficulty: "hard", emojis: ["⚔️", "💀", "🔥", "🏜️", "🩸"] },
+  { value: "syndra", label: "Syndra", difficulty: "hard", emojis: ["🔮", "🌙", "💀", "🟣", "👁️"] },
+  { value: "vex", label: "Vex", difficulty: "medium", emojis: ["🌫️", "😒", "🖤", "🌙"] },
+  { value: "yasuo", label: "Yasuo", difficulty: "easy", emojis: ["⚔️", "🌪️", "🌬️"] },
+  { value: "yunara", label: "Yunara", difficulty: "medium", emojis: ["🗡️", "🌌", "✨", "🧘"] },
+  { value: "zaahen", label: "Zaahen", difficulty: "hard", emojis: ["🗡️", "⚡", "🔥", "😇", "😈"] },
+  { value: "zed", label: "Zed", difficulty: "medium", emojis: ["🥷", "🔪", "🌑", "💨"] },
+  { value: "zoe", label: "Zoe", difficulty: "medium", emojis: ["🌌", "🎭", "✨", "🌀"] },
+  { value: "zyra", label: "Zyra", difficulty: "hard", emojis: ["🌹", "🌿", "🩸", "😈", "🌵"] }
 ];
+
+
+/*
+ * ============================================================
+ * NÚMERO DE INTENTOS
+ * ============================================================
+ *
+ * El número de intentos coincide con el número de emojis
+ * (pistas) definidos para cada campeón:
+ *
+ * - Fácil  → 3 emojis → 3 intentos.
+ * - Medio  → 4 emojis → 4 intentos.
+ * - Difícil → 5 emojis → 5 intentos.
+ *
+ * A medida que el jugador falla se van revelando los emojis
+ * restantes (uno por cada intento fallido).
+ * ============================================================
+ */
+
+function getMaxAttempts(champion) {
+  return champion.emojis.length;
+}
+
+
+/*
+ * ============================================================
+ * VALIDACIÓN DE LA DIFICULTAD
+ * ============================================================
+ *
+ * Comprueba que la dificultad declarada de cada campeón
+ * coincide con el número de emojis definidos.
+ * ============================================================
+ */
+
+const EMOJIS_POR_DIFICULTAD = {
+  easy: 3,
+  medium: 4,
+  hard: 5
+};
+
+for (const champion of CHAMPIONS) {
+
+  const esperado =
+    EMOJIS_POR_DIFICULTAD[champion.difficulty];
+
+  if (
+    esperado === undefined ||
+    champion.emojis.length !== esperado
+  ) {
+
+    throw new Error(
+      `Loldle: el campeón "${champion.value}" tiene dificultad "${champion.difficulty}" pero ${champion.emojis.length} emojis (se esperaban ${esperado}).`
+    );
+
+  }
+
+}
 
 
 /*
@@ -476,7 +583,7 @@ function buildLoldleEmbed(
   const revealed =
     Math.min(
       attempts + 1,
-      MAX_ATTEMPTS
+      getMaxAttempts(champion)
     );
 
   const clues =
@@ -491,7 +598,7 @@ function buildLoldleEmbed(
       .join(" ");
 
   const remaining =
-    MAX_ATTEMPTS - attempts;
+    getMaxAttempts(champion) - attempts;
 
   const totalPages =
     Math.ceil(
@@ -705,7 +812,7 @@ module.exports = {
 
     if (
       currentAttempts >=
-      MAX_ATTEMPTS
+      getMaxAttempts(champion)
     ) {
       return interaction.reply({
         content:
@@ -842,7 +949,7 @@ module.exports = {
 
       if (
         currentAttempts >=
-        MAX_ATTEMPTS
+        getMaxAttempts(champion)
       ) {
         const streak =
           await getUserStreak(
@@ -865,10 +972,9 @@ module.exports = {
           ephemeral: true
         });
 
-        return interaction.followUp({
+        return interaction.channel.send({
           content:
-            `❌ ${interaction.user.username} ha perdido el Loldle de hoy.`,
-          ephemeral: false
+            `❌ ${interaction.user.username} ha perdido el Loldle de hoy.`
         });
       }
 
@@ -1002,7 +1108,7 @@ module.exports = {
 
     if (
       currentAttempts >=
-      MAX_ATTEMPTS
+      getMaxAttempts(champion)
     ) {
       return interaction.reply({
         content:
@@ -1128,10 +1234,9 @@ module.exports = {
         });
 
 
-        return interaction.followUp({
+        return interaction.channel.send({
           content:
-            `🎉 ${interaction.user.username} ha adivinado el campeón y ganado **${xpGain} XP**.`,
-          ephemeral: false
+            `🎉 ${interaction.user.username} ha adivinado el campeón y ganado **${xpGain} XP**.`
         });
       }
 
@@ -1157,7 +1262,7 @@ module.exports = {
 
       if (
         nextAttempt >=
-        MAX_ATTEMPTS
+        getMaxAttempts(champion)
       ) {
 
         const streak =
@@ -1182,10 +1287,9 @@ module.exports = {
         });
 
 
-        return interaction.followUp({
+        return interaction.channel.send({
           content:
-            `❌ ${interaction.user.username} ha perdido el Loldle de hoy.`,
-          ephemeral: false
+            `❌ ${interaction.user.username} ha perdido el Loldle de hoy.`
         });
       }
 
@@ -1319,7 +1423,7 @@ module.exports = {
 
     if (
       currentAttempts >=
-      MAX_ATTEMPTS
+      getMaxAttempts(champion)
     ) {
       return interaction.update({
         content:
@@ -1401,10 +1505,9 @@ module.exports = {
       });
 
 
-      return interaction.followUp({
+      return interaction.channel.send({
         content:
-          `🎉 ${interaction.user.username} ha adivinado el campeón y ganado **${xpGain} XP**.`,
-        ephemeral: false
+          `🎉 ${interaction.user.username} ha adivinado el campeón y ganado **${xpGain} XP**.`
       });
     }
 
@@ -1430,7 +1533,7 @@ module.exports = {
 
     if (
       nextAttempt >=
-      MAX_ATTEMPTS
+      getMaxAttempts(champion)
     ) {
 
       const streak =
@@ -1456,10 +1559,9 @@ module.exports = {
       });
 
 
-      return interaction.followUp({
+      return interaction.channel.send({
         content:
-          `💀 ${interaction.user.username} ha perdido el Loldle de hoy.`,
-        ephemeral: false
+          `💀 ${interaction.user.username} ha perdido el Loldle de hoy.`
       });
     }
 

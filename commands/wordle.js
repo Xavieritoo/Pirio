@@ -746,15 +746,15 @@ module.exports = {
        * =================================================
  */
 
-      return interaction.editReply({
+      await interaction.channel.send({
 
         content:
 
-          `🎉 ¡${interaction.user.username} ha acertado el Wordle de hoy y gana **${xpGain} XP**! 🎉`,
-
-        ephemeral: false
+          `🎉 ¡${interaction.user.username} ha acertado el Wordle de hoy y gana **${xpGain} XP**! 🎉`
 
       });
+
+      return interaction.deleteReply();
 
     }
 
@@ -790,15 +790,15 @@ module.exports = {
       MAX_ATTEMPTS
     ) {
 
-      return interaction.editReply({
+      await interaction.channel.send({
 
         content:
 
-          `💀 ${interaction.user.username} ha perdido el Wordle de hoy.`,
-
-        ephemeral: false
+          `💀 ${interaction.user.username} ha perdido el Wordle de hoy.`
 
       });
+
+      return interaction.deleteReply();
 
     }
 

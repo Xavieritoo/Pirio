@@ -1026,14 +1026,18 @@ module.exports = {
              * --------------------------------------------------
              */
 
-            await interaction.reply({
+            await interaction.deferReply({
+                ephemeral: true
+            });
+
+            await interaction.channel.send({
 
                 content:
-                    `🎉 **${interaction.user.username}** ha ganado la Imagen de hoy y ha conseguido **${xpGain} XP**.`,
-
-                ephemeral: false
+                    `🎉 **${interaction.user.username}** ha ganado la Imagen de hoy y ha conseguido **${xpGain} XP**.`
 
             });
+
+            await interaction.deleteReply();
 
 
             /*
@@ -1103,7 +1107,7 @@ module.exports = {
                         MAX_ATTEMPTS,
 
                     daily_solved:
-                        1,
+                        0,
 
                     last_daily_date:
                         today
@@ -1119,14 +1123,18 @@ module.exports = {
              * --------------------------------------------------
              */
 
-            await interaction.reply({
+            await interaction.deferReply({
+                ephemeral: true
+            });
+
+            await interaction.channel.send({
 
                 content:
-                    `💀 **${interaction.user.username}** ha perdido la Imagen de hoy.`,
-
-                ephemeral: false
+                    `💀 **${interaction.user.username}** ha perdido la Imagen de hoy.`
 
             });
+
+            await interaction.deleteReply();
 
 
             /*
