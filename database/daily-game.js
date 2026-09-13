@@ -29,7 +29,7 @@ function getLocalDateString(date = new Date()) {
  * la fecha cuando quieras volver a la rotación automática.
  */
 const MANUAL_OVERRIDES = {
-  "2026-09-13": "blackjack"
+  "2026-09-14": "blackjack"
 };
 
 /*
