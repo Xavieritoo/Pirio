@@ -17,6 +17,22 @@ function getLocalDateString(date = new Date()) {
 }
 
 /*
+ * Sobrescritura manual del minijuego diario.
+ *
+ * Fuerza un minijuego concreto para una fecha concreta, ignorando
+ * la selección calculada por hash. Formato:
+ *
+ *     "YYYY-MM-DD": "nombre-del-minijuego"
+ *
+ * Útil para adelantar o cambiar el minijuego de un día puntual
+ * (por ejemplo, para que Blackjack salga hoy). Elimina la línea de
+ * la fecha cuando quieras volver a la rotación automática.
+ */
+const MANUAL_OVERRIDES = {
+  "2026-09-13": "blackjack"
+};
+
+/*
  * Hash FNV-1a de la fecha.
  *
  * El sistema anterior sumaba los códigos de carácter de la fecha y hacía
@@ -38,6 +54,15 @@ function hashString(str) {
 
 function getDailyGame() {
   const dateString = getLocalDateString();
+
+  // Sobrescritura manual (si existe para la fecha de hoy).
+  const forcedName = MANUAL_OVERRIDES[dateString];
+  if (forcedName) {
+    const forced = GAMES.find((game) => game.name === forcedName);
+    if (forced) {
+      return forced;
+    }
+  }
 
   // Hash de la fecha para una selección variada.
   let index = hashString(dateString) % GAMES.length;
