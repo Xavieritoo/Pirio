@@ -25,7 +25,7 @@ const {
 } = require("../database/users");
 
 const MINERALS = [
-    { id: "stone", name: "Piedra", plural: "Piedras", xp: 1, probability: 50.26, minAmount: 50, maxAmount: 125, rarity: "common", message: "⛏️ Has encontrado un montón de piedra." },
+    { id: "stone", name: "Piedra", plural: "Piedras", xp: 1, probability: 50.30, minAmount: 50, maxAmount: 125, rarity: "common", message: "⛏️ Has encontrado un montón de piedra." },
     { id: "coal", name: "Carbón", plural: "Carbones", xp: 1, probability: 20.0, minAmount: 40, maxAmount: 80, rarity: "common", message: "⛏️ Has encontrado carbón entre las rocas." },
     { id: "iron", name: "Hierro", plural: "Hierros", xp: 3, probability: 8.0, minAmount: 20, maxAmount: 60, rarity: "uncommon", message: "⛏️ ¡Has encontrado una veta de hierro!" },
     { id: "gold", name: "Oro", plural: "Oros", xp: 8, probability: 7.0, minAmount: 10, maxAmount: 30, rarity: "uncommon", message: "✨ ¡Has encontrado oro! Parece que hoy tienes suerte." },
@@ -59,7 +59,7 @@ const MINERALS = [
 
     { id: "deathnote", name: "Death Note", plural: "Death Notes", xp: 11000, probability: 0.04, rarity: "artifact", uniqueAmount: true, message: "📓 Un cuaderno negro con un nombre escrito en la portada. Las instrucciones parecen absurdas... hasta que empiezas a leerlas." },
     { id: "dedosukuna", name: "Dedo de Sukuna", plural: "Dedos de Sukuna", xp: 15000, probability: 0.03, rarity: "artifact", uniqueAmount: true, message: "🖐️ Un dedo seco y ennegrecido desprende una energía maldita que te pone los pelos de punta. Definitivamente no parece algo que debas tocar." },
-    { id: "musgravita", name: "Musgravita", plural: "Musgravitas", xp: 17500, probability: 0.07, rarity: "artifact", uniqueAmount: true, message: "🖤 Una gema negra con la otra mitad del corazón. Su forma encaja demasiado bien con algo que ya has visto... y eso no puede ser casualidad." },
+    { id: "musgravita", name: "Musgravita", plural: "Musgravitas", xp: 17500, probability: 0.03, rarity: "artifact", uniqueAmount: true, message: "🖤 Una gema negra con la otra mitad del corazón. Su forma encaja demasiado bien con algo que ya has visto... y eso no puede ser casualidad." },
     { id: "triforce", name: "Trifuerza", plural: "Trifuerzas", xp: 21000, probability: 0.02, rarity: "artifact", uniqueAmount: true, message: "🔺 Tres fragmentos dorados forman un símbolo perfecto. Su poder parece capaz de conceder cualquier deseo... siempre que seas digno de él." },
     { id: "dovahkiin", name: "Dovahkiin", plural: "Dovahkiins", xp: 25000, probability: 0.02, rarity: "artifact", uniqueAmount: true, message: "🐉 Un antiguo casco de hierro reposa entre las ruinas. Al acercarte, un extraño rugido parece resonar a lo lejos." },
     { id: "elpoder", name: "El Poder", plural: "El Poder", xp: 27500, probability: 0.01, rarity: "artifact", uniqueAmount: true, message: "⚡ Una extraña energía parece concentrarse en tus manos. No sabes exactamente qué puedes hacer con ella... pero solo se te ocurre enviar cosas a la luna." },
@@ -77,7 +77,7 @@ if (Math.abs(totalProbability - 100) > 0.0001) {
 
 const getStreakLuck = (streak) => Math.min(Math.max(Number(streak) || 0, 0), 50);
 
-const getProgressCurve = (luck) => Math.pow(luck / 50, 2.2);
+const getProgressCurve = (luck) => Math.min(Math.pow(luck / 50, 3.2), 0.5);
 
 const RARITY_MULTIPLIER = {
     "common": 0.0003,
@@ -85,8 +85,8 @@ const RARITY_MULTIPLIER = {
     "rare": 1.5,
     "very_rare": 4,
     "legendary": 8,
-    "mythic": 3,
-    "artifact": 10
+    "mythic": 2.5,
+    "artifact": 6
 };
 
 function getMineralMultiplier(mineral, streak) {
