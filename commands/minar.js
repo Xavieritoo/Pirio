@@ -192,24 +192,37 @@ module.exports = {
             user.last_daily_date === today &&
             Number(user.daily_solved || 0) >= 1;
 
+        /*
+         * Minas extra concedidas por un moderador con /add.
+         * Solo cuentan si se otorgaron para la fecha de hoy;
+         * si la fecha no coincide, se ignoran y no se acumulan.
+         */
+
+        const bonusMinesToday =
+            user.bonus_mines_date === today
+                ? Number(user.bonus_mines || 0)
+                : 0;
+
         const maxMinesToday =
-            dailySolvedToday
+            (dailySolvedToday
                 ? MINING_DAILY_LIMIT
-                : 1;
+                : 1) + bonusMinesToday;
 
         if (miningCountToday >= maxMinesToday) {
 
             if (dailySolvedToday) {
 
                 return interaction.reply({
-                    content: "❌ **Ya has minado 2 veces hoy.**\n\n⛏️ Vuelve mañana para volver a minar.",
+                    content:
+                        `❌ **Ya has minado ${maxMinesToday} veces hoy.**\n\n⛏️ Vuelve mañana para volver a minar.`,
                     ephemeral: true
                 });
 
             }
 
             return interaction.reply({
-                content: "❌ **Ya has minado hoy.**\n\n🏆 Gana el **minijuego diario** de hoy para desbloquear una segunda mina.",
+                content:
+                    `❌ **Ya has minado ${maxMinesToday} ${maxMinesToday === 1 ? "vez" : "veces"} hoy.**\n\n🏆 Gana el **minijuego diario** de hoy para desbloquear minas adicionales.`,
                 ephemeral: true
             });
 

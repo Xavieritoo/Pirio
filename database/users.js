@@ -386,6 +386,24 @@ function normalizeUser(user) {
 
     /*
      * ======================================================
+     * MINAS EXTRA DEL DÍA
+     * ======================================================
+     */
+
+    bonus_mines:
+      Number(
+        user.bonus_mines || 0
+      ),
+
+
+    bonus_mines_date:
+      formatDate(
+        user.bonus_mines_date
+      ),
+
+
+    /*
+     * ======================================================
      * MINERAL MÁS VALIOSO
      * ======================================================
      */

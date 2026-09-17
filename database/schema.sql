@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS users (
     most_valuable_mineral TEXT,
     last_mining_date DATE,
     mining_count_today INTEGER NOT NULL DEFAULT 0,
+    bonus_mines INTEGER NOT NULL DEFAULT 0,
+    bonus_mines_date DATE,
     voice_joined_at TIMESTAMPTZ,
     last_voice_xp_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,13 +33,13 @@ CREATE TABLE IF NOT EXISTS users (
 -- FUNCIÓN PARA ACTUALIZAR updated_at
 -- ============================================================
 CREATE
-OR REPLACE FUNCTION update_updated_at() RETURNS TRIGGER AS $ $ BEGIN NEW.updated_at = CURRENT_TIMESTAMP;
+OR REPLACE FUNCTION update_updated_at() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = CURRENT_TIMESTAMP;
 
 RETURN NEW;
 
 END;
 
-$ $ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================
 -- TRIGGER PARA updated_at
