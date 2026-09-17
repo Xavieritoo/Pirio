@@ -29,7 +29,7 @@ function getLocalDateString(date = new Date()) {
  * la fecha cuando quieras volver a la rotación automática.
  */
 const MANUAL_OVERRIDES = {
-  "2026-09-14": "blackjack"
+  "2026-09-18": "cancion"
 };
 
 /*
@@ -52,10 +52,113 @@ function hashString(str) {
   return hash >>> 0;
 }
 
-function getDailyGame() {
-  const dateString = getLocalDateString();
+/*
+ * Número de días recientes en los que un minijuego queda "reservado",
+ * es decir, no puede volver a salir.
+ *
+ * El sistema anterior solo evitaba que un minijuego se repitiera DOS DÍAS
+ * SEGUIDOS (comparaba nada más con ayer). Eso permitía que el mismo
+ * minijuego volviera al poco tiempo con un hueco de un solo día entre
+ * medias (por ejemplo, salir "anteayer y hoy"), que resultaba repetitivo.
+ *
+ * Con RECENT_DAYS controlamos cuántos días atrás se "bloquea" un
+ * minijuego. Mantenlo siempre menor que GAMES.length para que siempre
+ * haya alternativas disponibles.
+ */
+const RECENT_DAYS = 3;
 
-  // Sobrescritura manual (si existe para la fecha de hoy).
+/*
+ * Fecha a partir de la cual se construye la programación determinista.
+ * No hace falta tocarla mientras todas las fechas consultadas sean
+ * posteriores a la de arranque del bot (lo normal).
+ */
+const SCHEDULE_START = new Date(2026, 0, 1);
+
+/*
+ * Programación diaria ya calculada: "YYYY-MM-DD" -> nombre del minijuego.
+ *
+ * Se rellena hacia delante y se mantiene en memoria. Guardar aquí el
+ * resultado de cada día (y no solo el hash) es clave: el periodo de
+ * "reserva" debe basarse en el minijuego que REALMENTE apareció cada día,
+ * que ya incluye sus propios ajustes para no repetirse.
+ */
+const schedule = new Map();
+
+function addDays(date, days) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+/*
+ * Asegura que la programación está calculada al menos hasta `target`.
+ * Se construye día a día desde la fecha de arranque, guardando el resultado
+ * real en `schedule` para que los días siguientes bloqueen correctamente.
+ */
+function buildScheduleThrough(target) {
+  const startStr = getLocalDateString(SCHEDULE_START);
+  const targetStr = getLocalDateString(target);
+
+  // Fecha anterior a la de arranque: no hay programación, se usa el hash.
+  if (targetStr < startStr) {
+    return;
+  }
+
+  if (!schedule.has(startStr)) {
+    schedule.set(startStr, GAMES[hashString(startStr) % GAMES.length].name);
+  }
+
+  let cursor = addDays(SCHEDULE_START, 1);
+  const limit = Math.min(RECENT_DAYS, GAMES.length - 1);
+
+  while (!schedule.has(targetStr)) {
+    const cursorStr = getLocalDateString(cursor);
+
+    // Sobrescritura manual para este día.
+    const forcedName = MANUAL_OVERRIDES[cursorStr];
+    if (forcedName) {
+      schedule.set(cursorStr, forcedName);
+      cursor = addDays(cursor, 1);
+      continue;
+    }
+
+    // Minijuegos que REALMENTE salieron en los últimos RECENT_DAYS días.
+    const recentNames = new Set();
+    for (let i = 1; i <= limit; i++) {
+      const prevStr = getLocalDateString(addDays(cursor, -i));
+      if (schedule.has(prevStr)) {
+        recentNames.add(schedule.get(prevStr));
+      }
+    }
+
+    // Hash de la fecha para una selección variada.
+    let index = hashString(cursorStr) % GAMES.length;
+    const start = index;
+
+    // Avanza hasta dar con un minijuego que no esté entre los recientes,
+    // para que ninguno se repita demasiado pronto (p. ej. anteayer y hoy).
+    while (recentNames.has(GAMES[index].name)) {
+      index = (index + 1) % GAMES.length;
+      if (index === start) {
+        break; // Todos los minijuegos son recientes: usamos el del hash.
+      }
+    }
+
+    schedule.set(cursorStr, GAMES[index].name);
+    cursor = addDays(cursor, 1);
+  }
+}
+
+function getDailyGame(date = new Date()) {
+  const dateString = getLocalDateString(date);
+
+  buildScheduleThrough(date);
+
+  const name = schedule.get(dateString);
+
+  // Fecha anterior a la de arranque sin programación calculada.
+  if (!name) {
+    return GAMES[hashString(dateString) % GAMES.length];
+  }
+
   const forcedName = MANUAL_OVERRIDES[dateString];
   if (forcedName) {
     const forced = GAMES.find((game) => game.name === forcedName);
@@ -64,21 +167,7 @@ function getDailyGame() {
     }
   }
 
-  // Hash de la fecha para una selección variada.
-  let index = hashString(dateString) % GAMES.length;
-
-  // Evita que el minijuego se repita dos días seguidos.
-  if (GAMES.length > 1) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const prevIndex =
-      hashString(getLocalDateString(yesterday)) % GAMES.length;
-    if (index === prevIndex) {
-      index = (index + 1) % GAMES.length;
-    }
-  }
-
-  return GAMES[index];
+  return GAMES.find((game) => game.name === name);
 }
 
 function getDailyCommandName() {
