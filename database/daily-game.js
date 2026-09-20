@@ -29,7 +29,7 @@ function getLocalDateString(date = new Date()) {
  * la fecha cuando quieras volver a la rotación automática.
  */
 const MANUAL_OVERRIDES = {
-  "2026-09-18": "cancion"
+  "2026-09-21": "loldle"
 };
 
 /*
@@ -65,7 +65,7 @@ function hashString(str) {
  * minijuego. Mantenlo siempre menor que GAMES.length para que siempre
  * haya alternativas disponibles.
  */
-const RECENT_DAYS = 3;
+const RECENT_DAYS = 5;
 
 /*
  * Fecha a partir de la cual se construye la programación determinista.
