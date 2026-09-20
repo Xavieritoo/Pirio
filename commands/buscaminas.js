@@ -944,6 +944,47 @@ module.exports = {
 
         /*
          * ====================================================
+         * REINICIAR DATOS DIARIOS
+         * ====================================================
+         *
+         * Buscaminas es un minijuego de 1 intento al día.
+         * Cuando empieza un día nuevo hay que resetear el
+         * contador de intentos y el de diario resuelto, para
+         * que daily_solved solo indique si se ha ganado HOY.
+         *
+         * Sin este reinicio, daily_solved se acumula entre
+         * días de forma permanente: cualquiera que hubiera
+         * ganado alguna vez mantendría la segunda mina de
+         * /minar aunque hoy perdiera la partida, mientras
+         * que quien nunca ha ganado (daily_solved = 0)
+         * solo obtendría la mina base. Así todos se rigen
+         * por la misma regla (ganar hoy = 2 minas).
+         */
+
+        if (lastDailyDate !== today) {
+
+            await updateUserFields(
+
+                interaction.user.id,
+
+                {
+
+                    daily_attempts: 0,
+
+                    daily_solved: 0
+
+                }
+
+            );
+
+            user.daily_attempts = 0;
+            user.daily_solved = 0;
+
+        }
+
+
+        /*
+         * ====================================================
          * REGISTRAR PARTIDA DIARIA
          * ====================================================
          */

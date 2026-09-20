@@ -26,11 +26,13 @@ COMANDO /REMOVE
 *
 * - Racha diaria
 * - XP acumulada
+* - Minas extra (bonus de /minar)
 *
 * La racha y la XP se restan a los valores que ya tenía
 * el usuario (a diferencia de /set, que los sobrescribe).
 *
-* Ni la racha ni la XP pueden quedar por debajo de 0.
+* Ni la racha, ni la XP, ni las minas extra pueden quedar
+* por debajo de 0.
 *
 * Si se modifica la XP, también se sincroniza el rango y
 * se detecta una posible bajada de nivel.
@@ -49,7 +51,7 @@ module.exports = {
             )
 
             .setDescription(
-                "Resta racha y/o XP a un usuario."
+                "Resta racha, XP y/o minas extra a un usuario."
             )
 
 
@@ -141,6 +143,34 @@ module.exports = {
                         .setRequired(
                             false
                         )
+            )
+
+
+            /*
+             * ====================================================
+             * MINAS EXTRA (BONUS)
+             * ====================================================
+             */
+
+            .addIntegerOption(
+                option =>
+
+                    option
+                        .setName(
+                            "minas"
+                        )
+
+                        .setDescription(
+                            "Minas extra (bonus de /add) que quieres quitar."
+                        )
+
+                        .setMinValue(
+                            1
+                        )
+
+                        .setRequired(
+                            false
+                        )
             ),
 
 
@@ -222,6 +252,12 @@ module.exports = {
             );
 
 
+        const minesToRemove =
+            interaction.options.getInteger(
+                "minas"
+            );
+
+
         /*
          * ========================================================
          * COMPROBAR QUE SE HAYA INDICADO ALGO
@@ -230,13 +266,14 @@ module.exports = {
 
         if (
             streakToRemove === null &&
-            xpToRemove === null
+            xpToRemove === null &&
+            minesToRemove === null
         ) {
 
             return interaction.reply({
 
                 content:
-                    "❌ Debes indicar al menos una opción: **racha** o **xp**.",
+                    "❌ Debes indicar al menos una opción: **racha**, **xp** o **minas**.",
 
                 ephemeral: true
 
@@ -391,6 +428,41 @@ module.exports = {
 
         /*
          * ========================================================
+         * QUITAR MINAS EXTRA (BONUS)
+         * ========================================================
+         */
+
+        if (
+            minesToRemove !== null
+        ) {
+
+            const today =
+                getLocalDateString();
+
+            const currentBonusMines =
+                String(user.bonus_mines_date || "") === today
+                    ? Number(user.bonus_mines || 0)
+                    : 0;
+
+            /*
+             * Restamos las minas del contador de bonus de hoy.
+             * Nunca puede quedar por debajo de 0.
+             */
+
+            fields.bonus_mines =
+                Math.max(
+                    0,
+                    currentBonusMines - minesToRemove
+                );
+
+            fields.bonus_mines_date =
+                today;
+
+        }
+
+
+        /*
+         * ========================================================
          * ACTUALIZAR BASE DE DATOS
          * ========================================================
          */
@@ -481,6 +553,22 @@ module.exports = {
 
             changes.push(
                 `📉 Nivel: **${newLevel}**`
+            );
+
+        }
+
+
+        /*
+         * MINAS EXTRA (BONUS)
+         */
+
+        if (
+            minesToRemove !== null
+        ) {
+
+            changes.push(
+                `⛏️ Minas extra: **-${minesToRemove}** ` +
+                `para hoy (restante: **${fields.bonus_mines}**)`
             );
 
         }

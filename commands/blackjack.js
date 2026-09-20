@@ -641,7 +641,17 @@ async function saveScore(
         ? {
 
           wins:
-            currentWins + 1
+            currentWins + 1,
+
+          /*
+           * Al ganar el minijuego diario de hoy marcamos
+           * daily_solved = 1. Así /minar desbloquea la
+           * segunda mina solo si se ha ganado HOY, igual
+           * que en el resto de minijuegos.
+           */
+
+          daily_solved:
+            1
 
         }
         : {}
@@ -1271,6 +1281,45 @@ module.exports = {
           "❌ **Ya has jugado tu minijuego diario hoy.**\n\n⏳ Vuelve mañana para jugar otra partida."
 
       });
+
+    }
+
+
+    /*
+     * ========================================================
+     * REINICIAR DATOS DIARIOS
+     * ========================================================
+     *
+     * Blackjack es un minijuego de 1 intento al día.
+     * Cuando empieza un día nuevo hay que resetear el
+     * contador de intentos y el de diario resuelto, para
+     * que daily_solved solo indique si se ha ganado HOY.
+     *
+     * Sin este reinicio, daily_solved se acumularía entre
+     * días y la segunda mina de /minar dependería de
+     * partidas de días anteriores en lugar de la de hoy.
+     */
+
+    if (latestLastDailyDate !== today) {
+
+      await updateUserFields(
+
+        interaction.user.id,
+
+        {
+
+          daily_attempts: 0,
+
+          daily_solved: 0
+
+        },
+
+        interaction.member
+
+      );
+
+      latestUser.daily_attempts = 0;
+      latestUser.daily_solved = 0;
 
     }
 
