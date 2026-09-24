@@ -1084,7 +1084,7 @@ module.exports = {
 
                     try {
 
-                        await interaction.channel.send({
+                        await dmChannel.send({
 
                             content:
                                 finalMessage,
@@ -1153,28 +1153,98 @@ module.exports = {
          * ====================================================
          */
 
+        /* Se juega por MD: abrimos el chat privado del jugador. */
+        let dmChannel;
+
+        try {
+
+            dmChannel =
+                await interaction.user.createDM();
+
+        } catch (error) {
+
+            console.error(
+                "No se pudo abrir el MD para Simón Dice:",
+                error
+            );
+
+            return interaction.editReply({
+
+                content:
+                    "❌ No he podido abrir tu chat privado.\n\n📩 Revisa tu configuración de privacidad y permite mensajes directos de miembros de este servidor.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+
+        /*
+         * ====================================================
+         * MENSAJE DE PREPARACIÓN (por MD)
+         * ====================================================
+         */
+
+        let startMessage;
+
+        try {
+
+            startMessage =
+                await dmChannel.send({
+
+                    content:
+
+                        `🧠 **SIMÓN DICE**\n\n` +
+
+                        `🎯 Memoriza la secuencia de colores y repítela.\n\n` +
+
+                        `📈 Cada ronda añade un nuevo color.\n` +
+
+                        `🎨 En las rondas 5 y 9 aparecerán nuevos colores.\n\n` +
+
+                        `⭐ Cada ronda completada: **+${POINTS_PER_ROUND} XP**\n\n` +
+
+                        `♾️ **No hay límite de tiempo para responder.**\n\n` +
+
+                        `⚠️ **La partida termina cuando falles.**\n\n` +
+
+                        `👇 Pulsa el botón de empezar en este chat.`,
+
+                    components:
+                        createStartButton()
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "No se pudo enviar Simón Dice por MD:",
+                error
+            );
+
+            return interaction.editReply({
+
+                content:
+                    "❌ No he podido enviarte el minijuego por mensaje directo.\n\n📩 Revisa tu configuración de privacidad y permite mensajes directos de miembros de este servidor.",
+
+                ephemeral: true
+
+            });
+
+        }
+
+
+        /*
+         * ====================================================
+         * CONFIRMACIÓN EN EL CANAL
+         * ====================================================
+         */
+
         await interaction.editReply({
 
             content:
-
-                `🧠 **SIMÓN DICE**\n\n` +
-
-                `🎯 Memoriza la secuencia de colores y repítela.\n\n` +
-
-                `📈 Cada ronda añade un nuevo color.\n` +
-
-                `🎨 En las rondas 5 y 9 aparecerán nuevos colores.\n\n` +
-
-                `⭐ Cada ronda completada: **+${POINTS_PER_ROUND} XP**\n\n` +
-
-                `♾️ **No hay límite de tiempo para responder.**\n\n` +
-
-                `⚠️ **La partida termina cuando falles.**\n\n` +
-
-                `👇 Pulsa cuando estés preparado.`,
-
-            components:
-                createStartButton(),
+                "📩 Te he enviado **Simón Dice** por mensaje directo. Ábrelo y pulsa el botón de **Empezar**.",
 
             ephemeral: true
 
@@ -1186,10 +1256,6 @@ module.exports = {
          * ESPERAR BOTÓN DE EMPEZAR
          * ====================================================
          */
-
-        const startMessage =
-            await interaction.fetchReply();
-
 
         const startCollector =
             startMessage.createMessageComponentCollector({
@@ -1464,10 +1530,8 @@ module.exports = {
         let gameMessage = null;
 
         /*
-         * El mensaje efímero de la respuesta NO se puede editar
-         * con message.edit() (la API responde Unknown Message
-         * para mensajes efímeros), por lo que la partida se
-         * juega en un mensaje público normal del canal.
+         * La partida se juega por MD, por lo que el mensaje
+         * del juego se envía al chat privado del jugador.
          */
 
         try {
@@ -1475,7 +1539,7 @@ module.exports = {
             await interaction.editReply({
 
                 content:
-                    "🎮 **Simón Dice ha empezado.** Sigue el juego aquí abajo ⬇️",
+                    "🎮 **Simón Dice ha empezado.** Sigue el juego en tu mensaje directo ⬇️",
 
                 components: []
 
@@ -1493,7 +1557,7 @@ module.exports = {
         try {
 
             gameMessage =
-                await interaction.channel.send({
+                await dmChannel.send({
 
                     content:
                         createGameContent(
